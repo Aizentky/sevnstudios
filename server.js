@@ -55,21 +55,44 @@ function generateState() {
   return crypto.randomBytes(16).toString('hex');
 }
 
+function ensureDataDir() {
+  const dir = path.join(__dirname, 'data');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
 const TICKETS_FILE = path.join(__dirname, 'data', 'tickets.json');
+const CHAT_FILE = path.join(__dirname, 'data', 'chat.json');
+const MAINTENANCE_FILE = path.join(__dirname, 'data', 'maintenance.json');
 
 function getTickets() {
   try {
     if (!fs.existsSync(TICKETS_FILE)) return [];
     return JSON.parse(fs.readFileSync(TICKETS_FILE, 'utf8'));
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function saveTickets(tickets) {
-  const dir = path.dirname(TICKETS_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  ensureDataDir();
   fs.writeFileSync(TICKETS_FILE, JSON.stringify(tickets, null, 2));
+}
+
+function getChat() {
+  try {
+    if (!fs.existsSync(CHAT_FILE)) return [];
+    return JSON.parse(fs.readFileSync(CHAT_FILE, 'utf8'));
+  } catch { return []; }
+}
+
+function saveChat(messages) {
+  ensureDataDir();
+  fs.writeFileSync(CHAT_FILE, JSON.stringify(messages.slice(-200), null, 2));
+}
+
+function getMaintenance() {
+  try {
+    if (!fs.existsSync(MAINTENANCE_FILE)) return { enabled: false };
+    return JSON.parse(fs.readFileSync(MAINTENANCE_FILE, 'utf8'));
+  } catch { return { enabled: false }; }
 }
 
 // ======================
@@ -82,7 +105,7 @@ app.get('/', (req, res) => {
   res.redirect('/login');
 });
 
-// Login page
+// Login
 app.get('/login', (req, res) => {
   if (req.session.user) return res.redirect('/dashboard');
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -129,7 +152,6 @@ app.get('/auth/discord/callback', async (req, res) => {
   }
 
   delete req.session.oauthState;
-
   if (!code) return res.status(400).send('No authorization code received.');
 
   try {
@@ -140,7 +162,7 @@ app.get('/auth/discord/callback', async (req, res) => {
         client_id: CLIENT_ID,
         client_secret: CLIENT_SECRET,
         grant_type: 'authorization_code',
-        code: code,
+        code,
         redirect_uri: REDIRECT_URI
       })
     });
@@ -174,7 +196,7 @@ app.get('/auth/discord/callback', async (req, res) => {
     req.session.user = userData;
     addUser(userData);
 
-    console.log(`✅ User logged in: ${user.username} (${user.id})`);
+    console.log(`✅ Logged in: ${user.username} (${user.id})`);
     res.redirect('/dashboard');
   } catch (err) {
     console.error('OAuth error:', err);
@@ -182,9 +204,24 @@ app.get('/auth/discord/callback', async (req, res) => {
   }
 });
 
-// Dashboard
+// Dashboard (with maintenance check)
 app.get('/dashboard', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
+
+  const maint = getMaintenance();
+  if (maint.enabled && req.session.user.id !== ADMIN_ID) {
+    return res.send(`
+      <!DOCTYPE html>
+      <html><body style="background:#05080a;color:#e6edf3;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+        <div style="text-align:center;">
+          <h1 style="color:#00ff9c;">Under Maintenance</h1>
+          <p style="color:#6b7a8f;">SevnHub is currently under maintenance. Please check back later.</p>
+          <br><a href="/logout" style="color:#00ff9c;">Logout</a>
+        </div>
+      </body></html>
+    `);
+  }
+
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
@@ -198,17 +235,17 @@ app.get('/api/me', (req, res) => {
 app.get('/api/plugins', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
-  const pluginsDir = path.join(__dirname, 'public', 'plugins');
-  if (!fs.existsSync(pluginsDir)) {
-    fs.mkdirSync(pluginsDir, { recursive: true });
+  const dir = path.join(__dirname, 'public', 'plugins');
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
     return res.json([]);
   }
 
   try {
-    const files = fs.readdirSync(pluginsDir);
+    const files = fs.readdirSync(dir);
     const plugins = files.map(file => {
-      const filePath = path.join(pluginsDir, file);
-      const stats = fs.statSync(filePath);
+      const fp = path.join(dir, file);
+      const stats = fs.statSync(fp);
       if (stats.isDirectory()) return null;
 
       const ext = path.extname(file).toLowerCase().replace('.', '');
@@ -225,11 +262,7 @@ app.get('/api/plugins', (req, res) => {
       else if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) type = 'Image';
       else if (ext) type = ext.toUpperCase();
 
-      return {
-        name, file, type,
-        size: sizeInMB + ' MB',
-        downloadUrl: `/plugins/${encodeURIComponent(file)}`
-      };
+      return { name, file, type, size: sizeInMB + ' MB', downloadUrl: `/plugins/${encodeURIComponent(file)}` };
     }).filter(Boolean);
 
     res.json(plugins);
@@ -239,21 +272,21 @@ app.get('/api/plugins', (req, res) => {
   }
 });
 
-// API - Raid tools
+// API - Raid
 app.get('/api/raid', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
-  const raidDir = path.join(__dirname, 'public', 'raid');
-  if (!fs.existsSync(raidDir)) {
-    fs.mkdirSync(raidDir, { recursive: true });
+  const dir = path.join(__dirname, 'public', 'raid');
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
     return res.json([]);
   }
 
   try {
-    const files = fs.readdirSync(raidDir);
+    const files = fs.readdirSync(dir);
     const tools = files.map(file => {
-      const filePath = path.join(raidDir, file);
-      const stats = fs.statSync(filePath);
+      const fp = path.join(dir, file);
+      const stats = fs.statSync(fp);
       if (stats.isDirectory()) return null;
 
       const ext = path.extname(file).toLowerCase().replace('.', '');
@@ -268,11 +301,7 @@ app.get('/api/raid', (req, res) => {
       else if (['exe', 'dll'].includes(ext)) type = 'Binary';
       else if (ext) type = ext.toUpperCase();
 
-      return {
-        name, file, type,
-        size: sizeInMB + ' MB',
-        downloadUrl: `/raid/${encodeURIComponent(file)}`
-      };
+      return { name, file, type, size: sizeInMB + ' MB', downloadUrl: `/raid/${encodeURIComponent(file)}` };
     }).filter(Boolean);
 
     res.json(tools);
@@ -283,14 +312,48 @@ app.get('/api/raid', (req, res) => {
 });
 
 // ======================
-// FEEDBACK → Discord Webhook
+// GLOBAL CHAT
+// ======================
+app.get('/api/chat', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+  res.json(getChat());
+});
+
+app.post('/api/chat', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+
+  const maint = getMaintenance();
+  if (maint.enabled && req.session.user.id !== ADMIN_ID) {
+    return res.status(503).json({ error: 'Chat is under maintenance' });
+  }
+
+  const { message } = req.body;
+  if (!message || !message.trim()) return res.status(400).json({ error: 'Empty message' });
+
+  const user = req.session.user;
+  const messages = getChat();
+
+  messages.push({
+    id: Date.now().toString(36),
+    userId: user.id,
+    username: user.global_name || user.username,
+    avatar: user.avatar,
+    text: message.trim().slice(0, 500),
+    at: new Date().toISOString()
+  });
+
+  saveChat(messages);
+  res.json({ success: true });
+});
+
+// ======================
+// FEEDBACK WEBHOOK
 // ======================
 app.post('/api/feedback', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
   const { message } = req.body;
   if (!message || !message.trim()) return res.status(400).json({ error: 'Message required' });
-
   if (!WEBHOOK_URL) return res.status(500).json({ error: 'Webhook not configured' });
 
   const user = req.session.user;
@@ -353,26 +416,18 @@ app.post('/api/tickets', (req, res) => {
 
 app.get('/api/tickets', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
-
   const tickets = getTickets();
-  const isAdmin = req.session.user.id === ADMIN_ID;
-
-  if (isAdmin) return res.json(tickets);
+  if (req.session.user.id === ADMIN_ID) return res.json(tickets);
   res.json(tickets.filter(t => t.userId === req.session.user.id));
 });
 
 app.get('/api/tickets/:id', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
-
-  const tickets = getTickets();
-  const ticket = tickets.find(t => t.id === req.params.id);
+  const ticket = getTickets().find(t => t.id === req.params.id);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
-
-  const isAdmin = req.session.user.id === ADMIN_ID;
-  if (!isAdmin && ticket.userId !== req.session.user.id) {
+  if (req.session.user.id !== ADMIN_ID && ticket.userId !== req.session.user.id) {
     return res.status(403).json({ error: 'Access denied' });
   }
-
   res.json(ticket);
 });
 
@@ -388,7 +443,6 @@ app.post('/api/tickets/:id/reply', (req, res) => {
 
   const isAdmin = req.session.user.id === ADMIN_ID;
   const isOwner = ticket.userId === req.session.user.id;
-
   if (!isAdmin && !isOwner) return res.status(403).json({ error: 'Access denied' });
 
   ticket.messages.push({
