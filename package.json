@@ -7,10 +7,10 @@
     "dev": "node server.js"
   },
   "dependencies": {
+    "multer": "^1.4.5-lts.2"
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-session": "^1.18.0"
-    "multer": "^1.4.5-lts.1"
   }
 }
