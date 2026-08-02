@@ -397,6 +397,12 @@
           <div class="page-content">
             <h1 class="page-title">Tickets</h1>
             <p class="page-desc">Create a support ticket — staff will reply</p>
+
+            <div id="ticketAdminActions" style="display:none;margin-bottom:16px;gap:8px;flex-wrap:wrap;">
+              <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="clearClosedTickets()">Clear Closed Tickets</button>
+              <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.25);color:#ff4466;" onclick="clearAllTickets()">Clear All Tickets</button>
+            </div>
+
             <div class="card" id="createTicketCard">
               <div class="card-title">New Ticket</div>
               <input class="ticket-input" id="ticketSubject" placeholder="Subject..." style="margin-bottom:10px;">
@@ -413,6 +419,10 @@
           <div class="page-content">
             <h1 class="page-title">Giveaways</h1>
             <p class="page-desc">Enter active giveaways or create one (admin only)</p>
+
+            <div id="gwAdminActions" style="display:none;margin-bottom:16px;">
+              <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="clearEndedGiveaways()">Clear Ended Giveaways</button>
+            </div>
 
             <div class="card" id="createGiveawayCard" style="display:none;">
               <div class="card-title">Create Giveaway</div>
@@ -486,11 +496,20 @@
         const key = 'SEVN-' + user.id.slice(0,4) + '-' + user.id.slice(4,8) + '-' + user.id.slice(-4);
         document.getElementById('licenseKey').textContent = key.toUpperCase();
 
+        updateAdminActions();
         loadChat();
         chatPoll = setInterval(loadChat, 3000);
       } catch {
         location.href = '/login';
       }
+    }
+
+    function updateAdminActions() {
+      const isAdmin = currentUser && currentUser.id === ADMIN_DISCORD_ID;
+      const gwActions = document.getElementById('gwAdminActions');
+      const ticketActions = document.getElementById('ticketAdminActions');
+      if (gwActions) gwActions.style.display = isAdmin ? 'block' : 'none';
+      if (ticketActions) ticketActions.style.display = isAdmin ? 'flex' : 'none';
     }
 
     function openProfile() {
@@ -799,6 +818,30 @@
       }
     }
 
+    async function clearClosedTickets() {
+      if (!confirm('Clear all closed tickets?')) return;
+      try {
+        const res = await fetch('/api/tickets/clear-closed', { method: 'DELETE' });
+        if (!res.ok) return alert('Failed');
+        loadTickets();
+        alert('Closed tickets cleared');
+      } catch {
+        alert('Failed to clear');
+      }
+    }
+
+    async function clearAllTickets() {
+      if (!confirm('Clear ALL tickets? This cannot be undone.')) return;
+      try {
+        const res = await fetch('/api/tickets/clear', { method: 'DELETE' });
+        if (!res.ok) return alert('Failed');
+        loadTickets();
+        alert('All tickets cleared');
+      } catch {
+        alert('Failed to clear');
+      }
+    }
+
     // ======================
     // GIVEAWAYS
     // ======================
@@ -855,9 +898,7 @@
                 </div>
                 <span class="status-badge ${!isActive ? 'status-closed' : ''}">${isActive ? 'active' : 'ended'}</span>
               </div>
-
               ${winnersHtml}
-
               <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
                 ${isActive ? `
                   <button class="submit-btn" style="margin-top:0;" onclick="enterGiveaway('${g.id}')" ${alreadyIn ? 'disabled style="opacity:0.5;cursor:not-allowed;margin-top:0;"' : ''}>
@@ -944,6 +985,18 @@
         loadGiveaways();
       } catch {
         alert('Failed to end');
+      }
+    }
+
+    async function clearEndedGiveaways() {
+      if (!confirm('Clear all ended giveaways? This cannot be undone.')) return;
+      try {
+        const res = await fetch('/api/giveaways/clear-ended', { method: 'DELETE' });
+        if (!res.ok) return alert('Failed');
+        loadGiveaways();
+        alert('Ended giveaways cleared');
+      } catch {
+        alert('Failed to clear');
       }
     }
 
