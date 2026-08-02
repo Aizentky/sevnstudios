@@ -527,6 +527,25 @@ app.post('/api/tickets/:id/close', (req, res) => {
   res.json(ticket);
 });
 
+// Clear all tickets (admin)
+app.delete('/api/tickets/clear', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+  if (req.session.user.id !== ADMIN_ID) return res.status(403).json({ error: 'Admin only' });
+
+  saveTickets([]);
+  res.json({ success: true });
+});
+
+// Clear closed tickets only (admin)
+app.delete('/api/tickets/clear-closed', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+  if (req.session.user.id !== ADMIN_ID) return res.status(403).json({ error: 'Admin only' });
+
+  const list = getTickets().filter(t => t.status !== 'closed');
+  saveTickets(list);
+  res.json({ success: true, remaining: list.length });
+});
+
 // ======================
 // GIVEAWAYS
 // ======================
@@ -641,6 +660,16 @@ app.post('/api/giveaways/:id/end', (req, res) => {
 
   saveGiveaways(list);
   res.json(g);
+});
+
+// Clear ended giveaways (admin)
+app.delete('/api/giveaways/clear-ended', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+  if (req.session.user.id !== ADMIN_ID) return res.status(403).json({ error: 'Admin only' });
+
+  const list = getGiveaways().filter(g => g.status === 'active');
+  saveGiveaways(list);
+  res.json({ success: true, remaining: list.length });
 });
 
 // Logout
