@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 // ======================
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+const BASE_URL = process.env.BASE_URL || `https://sevnstudios.onrender.com:${PORT}`;
 const REDIRECT_URI = `${BASE_URL}/auth/discord/callback`;
 const SCOPES = ['identify', 'email'];
 
