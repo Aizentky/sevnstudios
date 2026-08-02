@@ -15,9 +15,14 @@ const PORT = process.env.PORT || 3000;
 // ======================
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-const BASE_URL = process.env.BASE_URL || `https://sevnstudios.onrender.com:${PORT}`;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 const REDIRECT_URI = `${BASE_URL}/auth/discord/callback`;
 const SCOPES = ['identify', 'email'];
+
+// ======================
+// Trust proxy (required for Render / HTTPS)
+// ======================
+app.set('trust proxy', 1);
 
 // ======================
 // Middleware
@@ -31,9 +36,9 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production', // true on Render
     httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     sameSite: 'lax'
   }
 }));
@@ -67,21 +72,26 @@ app.get('/login', (req, res) => {
 // Discord OAuth - Start
 app.get('/auth/discord', (req, res) => {
   const state = generateState();
-req.session.oauthState = state;
+  req.session.oauthState = state;
 
-console.log("CREATED STATE:", state);
-console.log("SESSION ID:", req.sessionID);
+  // Force session to save BEFORE redirecting to Discord
+  req.session.save((err) => {
+    if (err) {
+      console.error('Session save error:', err);
+      return res.status(500).send('Session error. Please try again.');
+    }
 
-  const params = new URLSearchParams({
-    client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
-    response_type: 'code',
-    scope: SCOPES.join(' '),
-    state: state,
-    prompt: 'consent'
+    const params = new URLSearchParams({
+      client_id: CLIENT_ID,
+      redirect_uri: REDIRECT_URI,
+      response_type: 'code',
+      scope: SCOPES.join(' '),
+      state: state,
+      prompt: 'consent'
+    });
+
+    res.redirect(`https://discord.com/api/oauth2/authorize?${params}`);
   });
-
-  res.redirect(`https://discord.com/api/oauth2/authorize?${params}`);
 });
 
 // Discord OAuth - Callback
@@ -89,14 +99,24 @@ app.get('/auth/discord/callback', async (req, res) => {
   const { code, state } = req.query;
 
   console.log('--- Discord Callback ---');
-  console.log('Code:', code ? 'received' : 'MISSING');
-  console.log('State match:', state === req.session.oauthState);
-  console.log('Redirect URI:', REDIRECT_URI);
-  console.log('Client ID:', CLIENT_ID);
+  console.log('Received state:', state);
+  console.log('Session state :', req.session.oauthState);
+  console.log('Session ID    :', req.sessionID);
+  console.log('Redirect URI  :', REDIRECT_URI);
+  console.log('Client ID     :', CLIENT_ID);
 
-  if (!state || state !== req.session.oauthState) {
-    return res.status(403).send('Invalid state. Possible CSRF attack.');
+  // Validate state
+  if (!state || !req.session.oauthState || state !== req.session.oauthState) {
+    console.error('❌ State mismatch — possible CSRF or lost session');
+    return res.status(403).send(`
+      <h2>Invalid state. Possible CSRF attack.</h2>
+      <p>Session may have been lost. Please try logging in again.</p>
+      <br>
+      <a href="/login">← Back to Login</a>
+    `);
   }
+
+  // Clear state after successful validation
   delete req.session.oauthState;
 
   if (!code) {
@@ -104,6 +124,7 @@ app.get('/auth/discord/callback', async (req, res) => {
   }
 
   try {
+    // Exchange code for access token
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
@@ -132,7 +153,7 @@ app.get('/auth/discord/callback', async (req, res) => {
       `);
     }
 
-    // Get user info
+    // Get user info from Discord
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`
@@ -150,7 +171,7 @@ app.get('/auth/discord/callback', async (req, res) => {
       email: user.email
     };
 
-    // Save session
+    // Save user in session
     req.session.user = userData;
 
     // Save permanently
@@ -203,16 +224,12 @@ app.get('/api/plugins', (req, res) => {
       const filePath = path.join(pluginsDir, file);
       const stats = fs.statSync(filePath);
 
-      // Skip folders
       if (stats.isDirectory()) return null;
 
       const ext = path.extname(file).toLowerCase().replace('.', '');
       const name = path.basename(file, path.extname(file));
-
-      // File size in MB
       const sizeInMB = (stats.size / (1024 * 1024)).toFixed(2);
 
-      // Detect type
       let type = 'File';
       if (['js', 'ts', 'jsx', 'tsx'].includes(ext)) type = 'JavaScript';
       else if (['py'].includes(ext)) type = 'Python';
@@ -260,7 +277,6 @@ app.get('/api/raid', (req, res) => {
       const filePath = path.join(raidDir, file);
       const stats = fs.statSync(filePath);
 
-      // Skip folders
       if (stats.isDirectory()) return null;
 
       const ext = path.extname(file).toLowerCase().replace('.', '');
@@ -304,4 +320,5 @@ app.get('/logout', (req, res) => {
 // ======================
 app.listen(PORT, () => {
   console.log(`🚀 Server running on ${BASE_URL}`);
+  console.log(`🔗 Redirect URI: ${REDIRECT_URI}`);
 });
