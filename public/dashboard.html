@@ -1,3 +1,6 @@
+Here’s the complete `public/dashboard.html`:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -253,7 +256,6 @@
     }
     .ticket-msg-meta { font-size: 0.72rem; color: var(--text-4); margin-bottom: 4px; }
 
-    /* Profile Modal */
     #profileModal {
       display: none; position: fixed; inset: 0; z-index: 100;
       background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
@@ -339,7 +341,7 @@
               <input type="text" id="chatInput" placeholder="Message SevnHub..." onkeydown="if(event.key==='Enter')sendMessage()">
               <button class="send-btn" onclick="sendMessage()"><i class="fa-solid fa-arrow-right"></i></button>
             </div>
-            <div class="chat-hint">Global chat — everyone can see your messages.</div>
+            <div class="chat-hint">Global chat — everyone can see your messages. Resets every hour.</div>
           </div>
         </div>
 
@@ -780,3 +782,6 @@
   </script>
 </body>
 </html>
+```
+
+Place this as `public/dashboard.html` and refresh.
