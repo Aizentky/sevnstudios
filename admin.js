@@ -47,51 +47,7 @@ function requireAdmin(req, res, next) {
   }
 
   if (req.session.user.id !== ALLOWED_ADMIN_ID) {
-    // Not admin → send back to dashboard
     return res.redirect('/dashboard');
-  }
-
-  next();
-}
-
-  if (req.session.user.id !== ALLOWED_ADMIN_ID) {
-    return res.status(403).send(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Access Denied</title>
-        <style>
-          body {
-            font-family: system-ui, sans-serif;
-            background: #05080a;
-            color: #e6edf3;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-          }
-          .box {
-            background: rgba(10, 18, 16, 0.6);
-            padding: 40px;
-            border-radius: 16px;
-            border: 1px solid rgba(0, 255, 156, 0.1);
-          }
-          h1 { color: #ff4466; margin-bottom: 12px; }
-          a { color: #00ff9c; text-decoration: none; }
-        </style>
-      </head>
-      <body>
-        <div class="box">
-          <h1>Access Denied</h1>
-          <p>You are not authorized to view this page.</p>
-          <br>
-          <a href="/dashboard">← Back to Dashboard</a>
-        </div>
-      </body>
-      </html>
-    `);
   }
 
   next();
@@ -181,7 +137,6 @@ router.get('/', requireAdmin, (req, res) => {
       padding: 40px 24px;
     }
     .container { max-width: 1100px; margin: 0 auto; }
-
     .header {
       display: flex;
       justify-content: space-between;
@@ -201,7 +156,6 @@ router.get('/', requireAdmin, (req, res) => {
       font-size: 0.85rem;
       margin-top: 4px;
     }
-
     .actions {
       display: flex;
       gap: 10px;
@@ -251,7 +205,6 @@ router.get('/', requireAdmin, (req, res) => {
     .btn-danger:hover {
       background: rgba(255, 68, 102, 0.22);
     }
-
     .stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -275,7 +228,6 @@ router.get('/', requireAdmin, (req, res) => {
       color: var(--muted);
       margin-top: 4px;
     }
-
     .panel {
       background: var(--card);
       border: 1px solid var(--border);
@@ -288,7 +240,6 @@ router.get('/', requireAdmin, (req, res) => {
       font-weight: 700;
       font-size: 0.95rem;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
@@ -307,7 +258,6 @@ router.get('/', requireAdmin, (req, res) => {
     }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: rgba(0, 255, 156, 0.03); }
-
     code {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.78rem;
@@ -406,7 +356,7 @@ module.exports = {
       users[i] = {
         ...users[i],
         ...userData,
-        joinedAt: users[i].joinedAt // keep original join date
+        joinedAt: users[i].joinedAt
       };
     }
 
