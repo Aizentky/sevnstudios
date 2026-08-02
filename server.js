@@ -1,3 +1,6 @@
+Here’s the complete updated `server.js`:
+
+```js
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
@@ -68,7 +71,9 @@ function getTickets() {
   try {
     if (!fs.existsSync(TICKETS_FILE)) return [];
     return JSON.parse(fs.readFileSync(TICKETS_FILE, 'utf8'));
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function saveTickets(tickets) {
@@ -80,7 +85,9 @@ function getChat() {
   try {
     if (!fs.existsSync(CHAT_FILE)) return [];
     return JSON.parse(fs.readFileSync(CHAT_FILE, 'utf8'));
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function saveChat(messages) {
@@ -92,8 +99,19 @@ function getMaintenance() {
   try {
     if (!fs.existsSync(MAINTENANCE_FILE)) return { enabled: false };
     return JSON.parse(fs.readFileSync(MAINTENANCE_FILE, 'utf8'));
-  } catch { return { enabled: false }; }
+  } catch {
+    return { enabled: false };
+  }
 }
+
+// ======================
+// Auto-reset chat every 1 hour
+// ======================
+setInterval(() => {
+  ensureDataDir();
+  fs.writeFileSync(CHAT_FILE, '[]');
+  console.log('🧹 Chat cleared (hourly reset)');
+}, 60 * 60 * 1000);
 
 // ======================
 // Routes
@@ -211,14 +229,80 @@ app.get('/dashboard', (req, res) => {
   const maint = getMaintenance();
   if (maint.enabled && req.session.user.id !== ADMIN_ID) {
     return res.send(`
-      <!DOCTYPE html>
-      <html><body style="background:#05080a;color:#e6edf3;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-        <div style="text-align:center;">
-          <h1 style="color:#00ff9c;">Under Maintenance</h1>
-          <p style="color:#6b7a8f;">SevnHub is currently under maintenance. Please check back later.</p>
-          <br><a href="/logout" style="color:#00ff9c;">Logout</a>
-        </div>
-      </body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Under Maintenance — SevnHub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: #05080a;
+      color: #e6edf3;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+    .box { max-width: 420px; }
+    .icon {
+      width: 72px;
+      height: 72px;
+      background: rgba(0, 255, 156, 0.08);
+      border: 1px solid rgba(0, 255, 156, 0.15);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 24px;
+      box-shadow: 0 0 40px rgba(0, 255, 156, 0.1);
+    }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: 0.08em;
+      color: #00ff9c;
+      margin-bottom: 12px;
+    }
+    p {
+      color: #6b7a8f;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    a {
+      display: inline-block;
+      padding: 10px 22px;
+      border-radius: 10px;
+      border: 1px solid rgba(0, 255, 156, 0.2);
+      background: rgba(0, 255, 156, 0.08);
+      color: #00ff9c;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    a:hover {
+      background: rgba(0, 255, 156, 0.15);
+      border-color: rgba(0, 255, 156, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="icon">🛠️</div>
+    <h1>UNDER MAINTENANCE</h1>
+    <p>SevnHub is currently under maintenance.<br>Please check back later.</p>
+    <a href="/logout">Logout</a>
+  </div>
+</body>
+</html>
     `);
   }
 
@@ -262,7 +346,13 @@ app.get('/api/plugins', (req, res) => {
       else if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) type = 'Image';
       else if (ext) type = ext.toUpperCase();
 
-      return { name, file, type, size: sizeInMB + ' MB', downloadUrl: `/plugins/${encodeURIComponent(file)}` };
+      return {
+        name,
+        file,
+        type,
+        size: sizeInMB + ' MB',
+        downloadUrl: `/plugins/${encodeURIComponent(file)}`
+      };
     }).filter(Boolean);
 
     res.json(plugins);
@@ -301,7 +391,13 @@ app.get('/api/raid', (req, res) => {
       else if (['exe', 'dll'].includes(ext)) type = 'Binary';
       else if (ext) type = ext.toUpperCase();
 
-      return { name, file, type, size: sizeInMB + ' MB', downloadUrl: `/raid/${encodeURIComponent(file)}` };
+      return {
+        name,
+        file,
+        type,
+        size: sizeInMB + ' MB',
+        downloadUrl: `/raid/${encodeURIComponent(file)}`
+      };
     }).filter(Boolean);
 
     res.json(tools);
@@ -328,7 +424,9 @@ app.post('/api/chat', (req, res) => {
   }
 
   const { message } = req.body;
-  if (!message || !message.trim()) return res.status(400).json({ error: 'Empty message' });
+  if (!message || !message.trim()) {
+    return res.status(400).json({ error: 'Empty message' });
+  }
 
   const user = req.session.user;
   const messages = getChat();
@@ -353,8 +451,13 @@ app.post('/api/feedback', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
   const { message } = req.body;
-  if (!message || !message.trim()) return res.status(400).json({ error: 'Message required' });
-  if (!WEBHOOK_URL) return res.status(500).json({ error: 'Webhook not configured' });
+  if (!message || !message.trim()) {
+    return res.status(400).json({ error: 'Message required' });
+  }
+
+  if (!WEBHOOK_URL) {
+    return res.status(500).json({ error: 'Webhook not configured' });
+  }
 
   const user = req.session.user;
 
@@ -367,9 +470,20 @@ app.post('/api/feedback', async (req, res) => {
           title: '📩 New Feedback',
           color: 0x00ff9c,
           fields: [
-            { name: 'User', value: `${user.global_name || user.username} (\`${user.id}\`)`, inline: true },
-            { name: 'Email', value: user.email || 'N/A', inline: true },
-            { name: 'Message', value: message.trim().slice(0, 1000) }
+            {
+              name: 'User',
+              value: `${user.global_name || user.username} (\`${user.id}\`)`,
+              inline: true
+            },
+            {
+              name: 'Email',
+              value: user.email || 'N/A',
+              inline: true
+            },
+            {
+              name: 'Message',
+              value: message.trim().slice(0, 1000)
+            }
           ],
           timestamp: new Date().toISOString()
         }]
@@ -389,7 +503,9 @@ app.post('/api/tickets', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
   const { subject, message } = req.body;
-  if (!subject || !message) return res.status(400).json({ error: 'Subject and message required' });
+  if (!subject || !message) {
+    return res.status(400).json({ error: 'Subject and message required' });
+  }
 
   const tickets = getTickets();
   const ticket = {
@@ -416,6 +532,7 @@ app.post('/api/tickets', (req, res) => {
 
 app.get('/api/tickets', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+
   const tickets = getTickets();
   if (req.session.user.id === ADMIN_ID) return res.json(tickets);
   res.json(tickets.filter(t => t.userId === req.session.user.id));
@@ -423,11 +540,14 @@ app.get('/api/tickets', (req, res) => {
 
 app.get('/api/tickets/:id', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+
   const ticket = getTickets().find(t => t.id === req.params.id);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
+
   if (req.session.user.id !== ADMIN_ID && ticket.userId !== req.session.user.id) {
     return res.status(403).json({ error: 'Access denied' });
   }
+
   res.json(ticket);
 });
 
@@ -435,7 +555,9 @@ app.post('/api/tickets/:id/reply', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
   const { message } = req.body;
-  if (!message || !message.trim()) return res.status(400).json({ error: 'Message required' });
+  if (!message || !message.trim()) {
+    return res.status(400).json({ error: 'Message required' });
+  }
 
   const tickets = getTickets();
   const ticket = tickets.find(t => t.id === req.params.id);
@@ -443,7 +565,10 @@ app.post('/api/tickets/:id/reply', (req, res) => {
 
   const isAdmin = req.session.user.id === ADMIN_ID;
   const isOwner = ticket.userId === req.session.user.id;
-  if (!isAdmin && !isOwner) return res.status(403).json({ error: 'Access denied' });
+
+  if (!isAdmin && !isOwner) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
 
   ticket.messages.push({
     from: isAdmin ? 'admin' : 'user',
@@ -487,3 +612,6 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on ${BASE_URL}`);
   console.log(`🔗 Redirect URI: ${REDIRECT_URI}`);
 });
+```
+
+Restart the server after replacing the file.
