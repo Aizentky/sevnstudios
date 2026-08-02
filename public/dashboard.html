@@ -85,7 +85,11 @@
       width: 3px; height: 20px; background: var(--accent); border-radius: 0 3px 3px 0;
     }
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border-subtle); }
-    .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; }
+    .sidebar-user {
+      display: flex; align-items: center; gap: 10px; padding: 8px;
+      border-radius: 10px; cursor: pointer; transition: background 0.2s;
+    }
+    .sidebar-user:hover { background: var(--bg-hover); }
     .sidebar-user img { width: 34px; height: 34px; border-radius: 10px; object-fit: cover; }
     .sidebar-user-name { font-size: 0.82rem; font-weight: 600; color: var(--text-2); }
     .sidebar-user-role { font-size: 0.68rem; color: var(--text-4); }
@@ -116,7 +120,7 @@
 
     .files-panel {
       background: var(--bg-card); border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg); max-width: 680px; overflow: hidden; backdrop-filter: blur(12px);
+      border-radius: var(--radius-lg); max-width: 680px; overflow: hidden;
     }
     .files-header {
       display: flex; align-items: center; gap: 10px;
@@ -152,9 +156,9 @@
     }
     .chat-empty h3 { font-size: 1rem; font-weight: 700; color: var(--text-1); }
     .chat-empty p { font-size: 0.82rem; }
-    .messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 10px; }
+    .messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 14px; }
     .message {
-      max-width: 60%; padding: 10px 14px; background: var(--bg-card);
+      padding: 10px 14px; background: var(--bg-card);
       border: 1px solid var(--border-subtle); border-radius: 12px; font-size: 0.85rem; line-height: 1.45;
     }
     .chat-input-bar { padding: 14px 24px 20px; }
@@ -180,7 +184,7 @@
     .card {
       background: var(--bg-card); border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg); padding: 20px; margin-bottom: 12px;
-      max-width: 520px; backdrop-filter: blur(12px);
+      max-width: 520px;
     }
     .card-title {
       font-size: 0.75rem; font-weight: 600; color: var(--text-3);
@@ -243,16 +247,26 @@
     textarea { min-height: 110px; resize: vertical; }
     textarea:focus, .ticket-input:focus { border-color: var(--border-active); }
     .feedback-ok { margin-top: 10px; font-size: 0.8rem; color: var(--accent); display: none; }
-
     .ticket-msg {
       padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border-subtle);
       border-radius: 10px; margin-bottom: 8px;
     }
     .ticket-msg-meta { font-size: 0.72rem; color: var(--text-4); margin-bottom: 4px; }
 
+    /* Profile Modal */
+    #profileModal {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+    }
+    .profile-box {
+      background: #0a100e; border: 1px solid rgba(0,255,156,0.15);
+      border-radius: 16px; padding: 28px; width: 340px; max-width: 90%;
+    }
+
     @media (max-width: 768px) {
       .sidebar { width: 64px; }
-      .sidebar-brand, .nav-item span, .sidebar-user-info, .nav-label { display: none; }
+      .sidebar-brand, .nav-item span, .sidebar-user > div:not(:first-child), .nav-label { display: none; }
       .nav-item { justify-content: center; }
       .page-content { padding: 20px 16px; }
     }
@@ -282,7 +296,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="sidebar-user">
+        <div class="sidebar-user" onclick="openProfile()" title="View profile">
           <img id="user-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="">
           <div>
             <div class="sidebar-user-name" id="user-name">Loading...</div>
@@ -306,7 +320,7 @@
             <p class="page-desc">Latest changes</p>
             <div class="card">
               <div class="card-title">Changelog</div>
-              <p style="color:var(--text-2);font-size:0.85rem;line-height:1.6;">Added public chat, ticket system & feedback webhook.</p>
+              <p style="color:var(--text-2);font-size:0.85rem;line-height:1.6;">Global chat, tickets, feedback webhook & profile panel added.</p>
             </div>
           </div>
         </div>
@@ -325,7 +339,7 @@
               <input type="text" id="chatInput" placeholder="Message SevnHub..." onkeydown="if(event.key==='Enter')sendMessage()">
               <button class="send-btn" onclick="sendMessage()"><i class="fa-solid fa-arrow-right"></i></button>
             </div>
-            <div class="chat-hint">SevnHub can make mistakes.</div>
+            <div class="chat-hint">Global chat — everyone can see your messages.</div>
           </div>
         </div>
 
@@ -383,14 +397,12 @@
           <div class="page-content">
             <h1 class="page-title">Tickets</h1>
             <p class="page-desc">Create a support ticket — staff will reply</p>
-
             <div class="card" id="createTicketCard">
               <div class="card-title">New Ticket</div>
               <input class="ticket-input" id="ticketSubject" placeholder="Subject..." style="margin-bottom:10px;">
               <textarea id="ticketMessage" placeholder="Describe your issue..."></textarea>
               <button class="submit-btn" onclick="createTicket()">Create Ticket</button>
             </div>
-
             <div id="ticketsList" style="margin-top:16px;"></div>
             <div id="ticketView" style="display:none;"></div>
           </div>
@@ -412,25 +424,73 @@
     </div>
   </div>
 
+  <!-- PROFILE MODAL -->
+  <div id="profileModal">
+    <div class="profile-box">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+        <img id="profileAvatar" src="" width="52" height="52" style="border-radius:12px;">
+        <div>
+          <div id="profileDisplayName" style="font-weight:700;font-size:1.05rem;"></div>
+          <div id="profileUsername" style="font-size:0.8rem;color:#6b7a8f;"></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:0.85rem;">
+        <div style="display:flex;justify-content:space-between;"><span style="color:#6b7a8f;">Discord ID</span><code id="profileId" style="font-size:0.78rem;"></code></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:#6b7a8f;">Email</span><span id="profileEmail"></span></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:#6b7a8f;">Username</span><span id="profileRawUsername"></span></div>
+      </div>
+      <button onclick="closeProfile()" style="margin-top:20px;width:100%;padding:10px;border-radius:9px;border:1px solid rgba(0,255,156,0.2);background:rgba(0,255,156,0.08);color:#00ff9c;font-weight:600;cursor:pointer;font-family:inherit;font-size:0.85rem;">Close</button>
+    </div>
+  </div>
+
   <script>
     const RAID_PASSWORD = 'sevntools2026paid';
+    let currentUser = null;
+    let chatPoll = null;
 
     async function loadUser() {
       try {
         const res = await fetch('/api/me');
         if (!res.ok) return location.href = '/login';
         const user = await res.json();
+        currentUser = user;
+
         document.getElementById('user-name').textContent = user.global_name || user.username;
         document.getElementById('user-email').textContent = user.email || user.id;
         document.getElementById('user-avatar').src = user.avatar
           ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
           : 'https://cdn.discordapp.com/embed/avatars/0.png';
+
         const key = 'SEVN-' + user.id.slice(0,4) + '-' + user.id.slice(4,8) + '-' + user.id.slice(-4);
         document.getElementById('licenseKey').textContent = key.toUpperCase();
+
+        loadChat();
+        chatPoll = setInterval(loadChat, 3000);
       } catch {
         location.href = '/login';
       }
     }
+
+    function openProfile() {
+      if (!currentUser) return;
+      document.getElementById('profileAvatar').src = currentUser.avatar
+        ? `https://cdn.discordapp.com/avatars/${currentUser.id}/${currentUser.avatar}.png`
+        : 'https://cdn.discordapp.com/embed/avatars/0.png';
+      document.getElementById('profileDisplayName').textContent = currentUser.global_name || currentUser.username;
+      document.getElementById('profileUsername').textContent = '@' + currentUser.username;
+      document.getElementById('profileId').textContent = currentUser.id;
+      document.getElementById('profileEmail').textContent = currentUser.email || '—';
+      document.getElementById('profileRawUsername').textContent = currentUser.username;
+      document.getElementById('profileModal').style.display = 'flex';
+    }
+
+    function closeProfile() {
+      document.getElementById('profileModal').style.display = 'none';
+    }
+
+    document.getElementById('profileModal').addEventListener('click', (e) => {
+      if (e.target.id === 'profileModal') closeProfile();
+    });
 
     function switchTab(id, btn) {
       document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
@@ -442,19 +502,74 @@
       if (id === 'ticket') loadTickets();
     }
 
-    function sendMessage() {
+    // Global Chat
+    async function loadChat() {
+      try {
+        const res = await fetch('/api/chat');
+        if (!res.ok) return;
+        renderChat(await res.json());
+      } catch {}
+    }
+
+    function renderChat(messages) {
+      const box = document.getElementById('messages');
+      if (!messages.length) {
+        box.innerHTML = `<div class="chat-empty" id="chatEmpty">
+          <div class="chat-empty-icon"><i class="fa-solid fa-comments"></i></div>
+          <h3>No messages yet</h3>
+          <p>Type a message below to start.</p>
+        </div>`;
+        return;
+      }
+
+      const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+
+      box.innerHTML = messages.map(m => {
+        const avatar = m.avatar
+          ? `https://cdn.discordapp.com/avatars/${m.userId}/${m.avatar}.png`
+          : 'https://cdn.discordapp.com/embed/avatars/0.png';
+        const time = new Date(m.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `
+          <div style="display:flex;gap:10px;max-width:80%;">
+            <img src="${avatar}" width="32" height="32" style="border-radius:8px;flex-shrink:0;margin-top:2px;">
+            <div>
+              <div style="font-size:0.75rem;color:#6b7a8f;margin-bottom:3px;">
+                <strong style="color:#9bb0c4;">${escapeHtml(m.username)}</strong> · ${time}
+              </div>
+              <div class="message" style="max-width:100%;">${escapeHtml(m.text)}</div>
+            </div>
+          </div>`;
+      }).join('');
+
+      if (wasAtBottom) box.scrollTop = box.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      const d = document.createElement('div');
+      d.textContent = text;
+      return d.innerHTML;
+    }
+
+    async function sendMessage() {
       const input = document.getElementById('chatInput');
       const text = input.value.trim();
       if (!text) return;
-      const empty = document.getElementById('chatEmpty');
-      if (empty) empty.remove();
-      const messages = document.getElementById('messages');
-      const msg = document.createElement('div');
-      msg.className = 'message';
-      msg.textContent = text;
-      messages.appendChild(msg);
-      messages.scrollTop = messages.scrollHeight;
       input.value = '';
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.error || 'Failed to send');
+          return;
+        }
+        loadChat();
+      } catch {
+        alert('Failed to send message');
+      }
     }
 
     function copyLicense() {
@@ -481,7 +596,7 @@
       }
     }
 
-    // Files helper
+    // Files
     function fileRow(file, size, type, url) {
       return `<a href="${url}" class="file-row" download>
         <div class="file-icon"><i class="fa-solid fa-file"></i></div>
@@ -580,7 +695,7 @@
           <div class="card" style="cursor:pointer;" onclick="openTicket('${t.id}')">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <div>
-                <div style="font-weight:600;font-size:0.9rem;">${t.subject}</div>
+                <div style="font-weight:600;font-size:0.9rem;">${escapeHtml(t.subject)}</div>
                 <div style="font-size:0.72rem;color:var(--text-4);margin-top:3px;">${t.id} · ${new Date(t.createdAt).toLocaleString()}</div>
               </div>
               <span class="status-badge ${t.status === 'closed' ? 'status-closed' : ''}">${t.status}</span>
@@ -603,10 +718,10 @@
         const msgs = t.messages.map(m => `
           <div class="ticket-msg">
             <div class="ticket-msg-meta">
-              <strong style="color:${m.from === 'admin' ? 'var(--accent)' : 'var(--text-2)'}">${m.from === 'admin' ? '🛡 Staff' : m.username}</strong>
+              <strong style="color:${m.from === 'admin' ? 'var(--accent)' : 'var(--text-2)'}">${m.from === 'admin' ? '🛡 Staff' : escapeHtml(m.username)}</strong>
               · ${new Date(m.at).toLocaleString()}
             </div>
-            <div style="font-size:0.85rem;">${m.text}</div>
+            <div style="font-size:0.85rem;">${escapeHtml(m.text)}</div>
           </div>
         `).join('');
 
@@ -615,7 +730,7 @@
           <div class="card" style="max-width:600px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
               <div>
-                <div style="font-weight:700;font-size:1rem;">${t.subject}</div>
+                <div style="font-weight:700;font-size:1rem;">${escapeHtml(t.subject)}</div>
                 <div style="font-size:0.72rem;color:var(--text-4);">${t.id}</div>
               </div>
               <span class="status-badge ${t.status === 'closed' ? 'status-closed' : ''}">${t.status}</span>
