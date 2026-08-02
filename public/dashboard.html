@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -185,7 +184,7 @@
     .card {
       background: var(--bg-card); border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg); padding: 20px; margin-bottom: 12px;
-      max-width: 560px;
+      max-width: 640px;
     }
     .card-title {
       font-size: 0.75rem; font-weight: 600; color: var(--text-3);
@@ -328,12 +327,15 @@
             <p class="page-desc">Latest changes</p>
             <div class="card">
               <div class="card-title">Changelog</div>
-              <p style="color:var(--text-2);font-size:0.85rem;line-height:1.6;">Admin panel, plugins delete, IP logs & activity logs.</p>
+              <p style="color:var(--text-2);font-size:0.85rem;line-height:1.6;">Users detail view + clear chat added.</p>
             </div>
           </div>
         </div>
 
         <div id="chat" class="tab-panel active">
+          <div id="chatAdminActions" style="display:none;padding:12px 24px 0;">
+            <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="clearChat()">Clear Chat</button>
+          </div>
           <div class="messages" id="messages">
             <div class="chat-empty">
               <div class="chat-empty-icon"><i class="fa-solid fa-comments"></i></div>
@@ -543,8 +545,10 @@
       const isAdmin = currentUser && currentUser.id === ADMIN_DISCORD_ID;
       const gw = document.getElementById('gwAdminActions');
       const tk = document.getElementById('ticketAdminActions');
+      const chat = document.getElementById('chatAdminActions');
       if (gw) gw.style.display = isAdmin ? 'block' : 'none';
       if (tk) tk.style.display = isAdmin ? 'flex' : 'none';
+      if (chat) chat.style.display = isAdmin ? 'block' : 'none';
     }
 
     function openProfile() {
@@ -617,6 +621,16 @@
         const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
         if (!res.ok) { const err = await res.json(); alert(err.error || 'Failed'); return; }
         loadChat();
+      } catch { alert('Failed'); }
+    }
+
+    async function clearChat() {
+      if (!confirm('Clear the entire chat? This cannot be undone.')) return;
+      try {
+        const res = await fetch('/api/admin/chat', { method: 'DELETE' });
+        if (!res.ok) return alert('Failed');
+        loadChat();
+        alert('Chat cleared');
       } catch { alert('Failed'); }
     }
 
@@ -906,18 +920,35 @@
         const res = await fetch('/api/admin/users');
         const users = await res.json();
         if (!users.length) { list.innerHTML = `<div class="files-empty">No users</div>`; return; }
-        list.innerHTML = users.map(u => `
-          <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <img src="${u.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png'}" width="36" height="36" style="border-radius:8px;">
-              <div>
-                <div style="font-weight:600;">${escapeHtml(u.global_name || u.username)}</div>
-                <div style="font-size:0.72rem;color:var(--text-4);">${u.id}</div>
+        list.innerHTML = users.map(u => {
+          const avatar = u.avatar
+            ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png`
+            : 'https://cdn.discordapp.com/embed/avatars/0.png';
+          const joined = u.joinedAt ? new Date(u.joinedAt).toLocaleString() : '—';
+          return `
+            <div class="card">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;">
+                <div style="display:flex;gap:14px;align-items:flex-start;">
+                  <img src="${avatar}" width="48" height="48" style="border-radius:12px;object-fit:cover;">
+                  <div style="font-size:0.85rem;line-height:1.55;">
+                    <div style="font-weight:700;font-size:1rem;margin-bottom:6px;">
+                      ${escapeHtml(u.global_name || u.username)}
+                    </div>
+                    <div style="color:var(--text-3);">
+                      <div><span style="color:var(--text-4);">Username</span> · @${escapeHtml(u.username)}</div>
+                      <div><span style="color:var(--text-4);">Discord ID</span> · <code style="font-size:0.78rem;">${u.id}</code></div>
+                      <div><span style="color:var(--text-4);">Email</span> · ${escapeHtml(u.email || '—')}</div>
+                      <div><span style="color:var(--text-4);">Joined</span> · ${joined}</div>
+                    </div>
+                  </div>
+                </div>
+                <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;flex-shrink:0;" onclick="deleteUser('${u.id}')">
+                  Delete
+                </button>
               </div>
             </div>
-            <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="deleteUser('${u.id}')">Delete</button>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       } catch { list.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
