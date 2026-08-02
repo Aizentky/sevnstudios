@@ -5,7 +5,6 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const multer = require('multer');
 const { router: adminRouter, addUser, getUsers, saveUsers } = require('./admin');
 
 const app = express();
@@ -46,7 +45,7 @@ app.use(session({
   }
 }));
 
-// Admin routes (/admin page)
+// Admin routes
 app.use('/admin', adminRouter);
 
 // ======================
@@ -67,15 +66,9 @@ const MAINTENANCE_FILE = path.join(__dirname, 'data', 'maintenance.json');
 const GIVEAWAYS_FILE = path.join(__dirname, 'data', 'giveaways.json');
 const LOGS_FILE = path.join(__dirname, 'data', 'logs.json');
 const IP_LOGS_FILE = path.join(__dirname, 'data', 'ip_logs.json');
-
 const pluginsDir = path.join(__dirname, 'public', 'plugins');
-if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir, { recursive: true });
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, pluginsDir),
-  filename: (req, file, cb) => cb(null, file.originalname)
-});
-const upload = multer({ storage });
+if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir, { recursive: true });
 
 function getTickets() {
   try {
@@ -164,7 +157,7 @@ function addIpLog(req) {
   fs.writeFileSync(IP_LOGS_FILE, JSON.stringify(logs.slice(0, 300), null, 2));
 }
 
-// IP logging middleware
+// IP logging
 app.use((req, res, next) => {
   if (req.session?.user) {
     const key = `ip_${req.session.user.id}`;
@@ -287,7 +280,7 @@ app.get('/auth/discord/callback', async (req, res) => {
   }
 });
 
-// Dashboard + maintenance page
+// Dashboard + maintenance
 app.get('/dashboard', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
 
@@ -468,7 +461,7 @@ app.post('/api/chat', (req, res) => {
 });
 
 // ======================
-// FEEDBACK WEBHOOK
+// FEEDBACK
 // ======================
 app.post('/api/feedback', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
@@ -808,17 +801,7 @@ app.delete('/api/admin/ip-logs', (req, res) => {
   res.json({ success: true });
 });
 
-// Upload plugin
-app.post('/api/admin/plugins/upload', upload.single('file'), (req, res) => {
-  if (!req.session.user || req.session.user.id !== ADMIN_ID) {
-    return res.status(403).json({ error: 'Admin only' });
-  }
-  if (!req.file) return res.status(400).json({ error: 'No file' });
-  addLog('upload_plugin', req.session.user, req.file.originalname);
-  res.json({ success: true, file: req.file.originalname });
-});
-
-// Delete plugin
+// Delete plugin (no multer needed)
 app.delete('/api/admin/plugins/:filename', (req, res) => {
   if (!req.session.user || req.session.user.id !== ADMIN_ID) {
     return res.status(403).json({ error: 'Admin only' });
