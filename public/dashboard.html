@@ -1,6 +1,3 @@
-Here’s the complete `public/dashboard.html`:
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -187,7 +184,7 @@ Here’s the complete `public/dashboard.html`:
     .card {
       background: var(--bg-card); border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg); padding: 20px; margin-bottom: 12px;
-      max-width: 520px;
+      max-width: 560px;
     }
     .card-title {
       font-size: 0.75rem; font-weight: 600; color: var(--text-3);
@@ -294,6 +291,7 @@ Here’s the complete `public/dashboard.html`:
         <button class="nav-item" onclick="switchTab('raid', this)"><i class="fa-solid fa-shield-halved"></i><span>777 Raid Tools</span></button>
         <div class="nav-label">Support</div>
         <button class="nav-item" onclick="switchTab('ticket', this)"><i class="fa-solid fa-ticket"></i><span>Tickets</span></button>
+        <button class="nav-item" onclick="switchTab('giveaways', this)"><i class="fa-solid fa-gift"></i><span>Giveaways</span></button>
         <button class="nav-item" onclick="switchTab('feedback', this)"><i class="fa-solid fa-message"></i><span>Feedback</span></button>
       </nav>
 
@@ -322,7 +320,7 @@ Here’s the complete `public/dashboard.html`:
             <p class="page-desc">Latest changes</p>
             <div class="card">
               <div class="card-title">Changelog</div>
-              <p style="color:var(--text-2);font-size:0.85rem;line-height:1.6;">Global chat, tickets, feedback webhook & profile panel added.</p>
+              <p style="color:var(--text-2);font-size:0.85rem;line-height:1.6;">Global chat, tickets, giveaways, feedback webhook & profile panel added.</p>
             </div>
           </div>
         </div>
@@ -410,6 +408,27 @@ Here’s the complete `public/dashboard.html`:
           </div>
         </div>
 
+        <!-- GIVEAWAYS -->
+        <div id="giveaways" class="tab-panel">
+          <div class="page-content">
+            <h1 class="page-title">Giveaways</h1>
+            <p class="page-desc">Enter active giveaways or create one (admin only)</p>
+
+            <div class="card" id="createGiveawayCard" style="display:none;">
+              <div class="card-title">Create Giveaway</div>
+              <input class="ticket-input" id="gwTitle" placeholder="Title..." style="margin-bottom:10px;">
+              <textarea id="gwDesc" placeholder="Description..." style="margin-bottom:10px;"></textarea>
+              <div style="display:flex;gap:10px;max-width:520px;margin-bottom:10px;">
+                <input class="ticket-input" id="gwDuration" type="number" min="1" value="60" placeholder="Duration (minutes)" style="flex:1;">
+                <input class="ticket-input" id="gwWinners" type="number" min="1" value="1" placeholder="Winners" style="width:120px;">
+              </div>
+              <button class="submit-btn" onclick="createGiveaway()">Create Giveaway</button>
+            </div>
+
+            <div id="giveawaysList" style="margin-top:16px;"></div>
+          </div>
+        </div>
+
         <!-- FEEDBACK -->
         <div id="feedback" class="tab-panel">
           <div class="page-content">
@@ -447,6 +466,7 @@ Here’s the complete `public/dashboard.html`:
 
   <script>
     const RAID_PASSWORD = 'sevntools2026paid';
+    const ADMIN_DISCORD_ID = '1504098102171406510';
     let currentUser = null;
     let chatPoll = null;
 
@@ -502,6 +522,13 @@ Here’s the complete `public/dashboard.html`:
       if (id === 'plugins') loadPlugins();
       if (id === 'raid') checkRaidUnlock();
       if (id === 'ticket') loadTickets();
+      if (id === 'giveaways') loadGiveaways();
+    }
+
+    function escapeHtml(text) {
+      const d = document.createElement('div');
+      d.textContent = text;
+      return d.innerHTML;
     }
 
     // Global Chat
@@ -544,12 +571,6 @@ Here’s the complete `public/dashboard.html`:
       }).join('');
 
       if (wasAtBottom) box.scrollTop = box.scrollHeight;
-    }
-
-    function escapeHtml(text) {
-      const d = document.createElement('div');
-      d.textContent = text;
-      return d.innerHTML;
     }
 
     async function sendMessage() {
@@ -778,10 +799,158 @@ Here’s the complete `public/dashboard.html`:
       }
     }
 
+    // ======================
+    // GIVEAWAYS
+    // ======================
+    async function loadGiveaways() {
+      const createCard = document.getElementById('createGiveawayCard');
+      if (currentUser && currentUser.id === ADMIN_DISCORD_ID) {
+        createCard.style.display = 'block';
+      } else {
+        createCard.style.display = 'none';
+      }
+
+      const list = document.getElementById('giveawaysList');
+      try {
+        const res = await fetch('/api/giveaways');
+        const giveaways = await res.json();
+
+        if (!giveaways.length) {
+          list.innerHTML = `<div class="files-empty">No giveaways yet</div>`;
+          return;
+        }
+
+        list.innerHTML = giveaways.map(g => {
+          const ends = new Date(g.endsAt);
+          const isActive = g.status === 'active' && ends > new Date();
+          const alreadyIn = g.entries.some(e => e.userId === (currentUser && currentUser.id));
+          const isAdmin = currentUser && currentUser.id === ADMIN_DISCORD_ID;
+
+          let winnersHtml = '';
+          if (g.status === 'ended' && g.winners && g.winners.length) {
+            winnersHtml = `
+              <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-subtle);">
+                <div style="font-size:0.75rem;color:var(--accent);font-weight:600;margin-bottom:6px;">🏆 Winners</div>
+                ${g.winners.map(w => `
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:0.82rem;">
+                    <img src="${w.avatar ? `https://cdn.discordapp.com/avatars/${w.userId}/${w.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png'}" width="22" height="22" style="border-radius:6px;">
+                    ${escapeHtml(w.username)}
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          }
+
+          return `
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+                <div>
+                  <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">${escapeHtml(g.title)}</div>
+                  <div style="font-size:0.82rem;color:var(--text-3);margin-bottom:8px;">${escapeHtml(g.description)}</div>
+                  <div style="font-size:0.72rem;color:var(--text-4);">
+                    ${g.entries.length} entr${g.entries.length === 1 ? 'y' : 'ies'}
+                    · ${g.winnerCount} winner${g.winnerCount > 1 ? 's' : ''}
+                    · Ends ${ends.toLocaleString()}
+                  </div>
+                </div>
+                <span class="status-badge ${!isActive ? 'status-closed' : ''}">${isActive ? 'active' : 'ended'}</span>
+              </div>
+
+              ${winnersHtml}
+
+              <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+                ${isActive ? `
+                  <button class="submit-btn" style="margin-top:0;" onclick="enterGiveaway('${g.id}')" ${alreadyIn ? 'disabled style="opacity:0.5;cursor:not-allowed;margin-top:0;"' : ''}>
+                    ${alreadyIn ? '✓ Entered' : 'Enter Giveaway'}
+                  </button>
+                ` : ''}
+                ${isAdmin ? `
+                  <button class="submit-btn" style="margin-top:0;background:rgba(0,255,156,0.1);color:var(--accent);" onclick="viewEntries('${g.id}')">
+                    View Entries (${g.entries.length})
+                  </button>
+                  ${isActive ? `
+                    <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="endGiveaway('${g.id}')">
+                      End Now
+                    </button>
+                  ` : ''}
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch {
+        list.innerHTML = `<div class="files-empty">Failed to load giveaways</div>`;
+      }
+    }
+
+    async function createGiveaway() {
+      const title = document.getElementById('gwTitle').value.trim();
+      const description = document.getElementById('gwDesc').value.trim();
+      const durationMinutes = document.getElementById('gwDuration').value;
+      const winnerCount = document.getElementById('gwWinners').value;
+
+      if (!title || !description) return alert('Title and description required');
+
+      try {
+        const res = await fetch('/api/giveaways', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, durationMinutes, winnerCount })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          return alert(err.error || 'Failed');
+        }
+        document.getElementById('gwTitle').value = '';
+        document.getElementById('gwDesc').value = '';
+        document.getElementById('gwDuration').value = '60';
+        document.getElementById('gwWinners').value = '1';
+        loadGiveaways();
+      } catch {
+        alert('Failed to create giveaway');
+      }
+    }
+
+    async function enterGiveaway(id) {
+      try {
+        const res = await fetch('/api/giveaways/' + id + '/enter', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) return alert(data.error || 'Failed');
+        loadGiveaways();
+      } catch {
+        alert('Failed to enter');
+      }
+    }
+
+    async function viewEntries(id) {
+      try {
+        const res = await fetch('/api/giveaways/' + id + '/entries');
+        const entries = await res.json();
+        if (!res.ok) return alert('Failed to load entries');
+        if (!entries.length) return alert('No entries yet');
+
+        const text = entries.map((e, i) => `${i + 1}. ${e.username} (${e.userId})`).join('\n');
+        alert(`Entries (${entries.length}):\n\n${text}`);
+      } catch {
+        alert('Failed to load entries');
+      }
+    }
+
+    async function endGiveaway(id) {
+      if (!confirm('End this giveaway and pick winners now?')) return;
+      try {
+        const res = await fetch('/api/giveaways/' + id + '/end', { method: 'POST' });
+        if (!res.ok) return alert('Failed');
+        loadGiveaways();
+      } catch {
+        alert('Failed to end');
+      }
+    }
+
     loadUser();
   </script>
 </body>
 </html>
 ```
 
-Place this as `public/dashboard.html` and refresh.
+Replace your current `public/dashboard.html` with this file and refresh.
