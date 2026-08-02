@@ -1,6 +1,3 @@
-Here’s the complete updated `server.js`:
-
-```js
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
@@ -66,14 +63,13 @@ function ensureDataDir() {
 const TICKETS_FILE = path.join(__dirname, 'data', 'tickets.json');
 const CHAT_FILE = path.join(__dirname, 'data', 'chat.json');
 const MAINTENANCE_FILE = path.join(__dirname, 'data', 'maintenance.json');
+const GIVEAWAYS_FILE = path.join(__dirname, 'data', 'giveaways.json');
 
 function getTickets() {
   try {
     if (!fs.existsSync(TICKETS_FILE)) return [];
     return JSON.parse(fs.readFileSync(TICKETS_FILE, 'utf8'));
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function saveTickets(tickets) {
@@ -85,9 +81,7 @@ function getChat() {
   try {
     if (!fs.existsSync(CHAT_FILE)) return [];
     return JSON.parse(fs.readFileSync(CHAT_FILE, 'utf8'));
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function saveChat(messages) {
@@ -99,14 +93,22 @@ function getMaintenance() {
   try {
     if (!fs.existsSync(MAINTENANCE_FILE)) return { enabled: false };
     return JSON.parse(fs.readFileSync(MAINTENANCE_FILE, 'utf8'));
-  } catch {
-    return { enabled: false };
-  }
+  } catch { return { enabled: false }; }
 }
 
-// ======================
+function getGiveaways() {
+  try {
+    if (!fs.existsSync(GIVEAWAYS_FILE)) return [];
+    return JSON.parse(fs.readFileSync(GIVEAWAYS_FILE, 'utf8'));
+  } catch { return []; }
+}
+
+function saveGiveaways(list) {
+  ensureDataDir();
+  fs.writeFileSync(GIVEAWAYS_FILE, JSON.stringify(list, null, 2));
+}
+
 // Auto-reset chat every 1 hour
-// ======================
 setInterval(() => {
   ensureDataDir();
   fs.writeFileSync(CHAT_FILE, '[]');
@@ -117,13 +119,11 @@ setInterval(() => {
 // Routes
 // ======================
 
-// Home
 app.get('/', (req, res) => {
   if (req.session.user) return res.redirect('/dashboard');
   res.redirect('/login');
 });
 
-// Login
 app.get('/login', (req, res) => {
   if (req.session.user) return res.redirect('/dashboard');
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -156,10 +156,6 @@ app.get('/auth/discord', (req, res) => {
 // Discord OAuth - Callback
 app.get('/auth/discord/callback', async (req, res) => {
   const { code, state } = req.query;
-
-  console.log('--- Discord Callback ---');
-  console.log('Received state:', state);
-  console.log('Session state :', req.session.oauthState);
 
   if (!state || !req.session.oauthState || state !== req.session.oauthState) {
     return res.status(403).send(`
@@ -222,7 +218,7 @@ app.get('/auth/discord/callback', async (req, res) => {
   }
 });
 
-// Dashboard (with maintenance check)
+// Dashboard + maintenance page
 app.get('/dashboard', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
 
@@ -240,57 +236,29 @@ app.get('/dashboard', (req, res) => {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Outfit', system-ui, sans-serif;
-      background: #05080a;
-      color: #e6edf3;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 24px;
+      background: #05080a; color: #e6edf3;
+      min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; text-align: center; padding: 24px;
     }
     .box { max-width: 420px; }
     .icon {
-      width: 72px;
-      height: 72px;
+      width: 72px; height: 72px;
       background: rgba(0, 255, 156, 0.08);
       border: 1px solid rgba(0, 255, 156, 0.15);
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      margin: 0 auto 24px;
+      border-radius: 20px; display: flex; align-items: center;
+      justify-content: center; font-size: 2rem; margin: 0 auto 24px;
       box-shadow: 0 0 40px rgba(0, 255, 156, 0.1);
     }
     h1 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 1.3rem;
-      letter-spacing: 0.08em;
-      color: #00ff9c;
-      margin-bottom: 12px;
+      font-family: 'Orbitron', sans-serif; font-size: 1.3rem;
+      letter-spacing: 0.08em; color: #00ff9c; margin-bottom: 12px;
     }
-    p {
-      color: #6b7a8f;
-      font-size: 0.95rem;
-      line-height: 1.6;
-      margin-bottom: 28px;
-    }
+    p { color: #6b7a8f; font-size: 0.95rem; line-height: 1.6; margin-bottom: 28px; }
     a {
-      display: inline-block;
-      padding: 10px 22px;
-      border-radius: 10px;
+      display: inline-block; padding: 10px 22px; border-radius: 10px;
       border: 1px solid rgba(0, 255, 156, 0.2);
-      background: rgba(0, 255, 156, 0.08);
-      color: #00ff9c;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 0.85rem;
-      transition: all 0.2s;
-    }
-    a:hover {
-      background: rgba(0, 255, 156, 0.15);
-      border-color: rgba(0, 255, 156, 0.4);
+      background: rgba(0, 255, 156, 0.08); color: #00ff9c;
+      text-decoration: none; font-weight: 600; font-size: 0.85rem;
     }
   </style>
 </head>
@@ -346,13 +314,7 @@ app.get('/api/plugins', (req, res) => {
       else if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) type = 'Image';
       else if (ext) type = ext.toUpperCase();
 
-      return {
-        name,
-        file,
-        type,
-        size: sizeInMB + ' MB',
-        downloadUrl: `/plugins/${encodeURIComponent(file)}`
-      };
+      return { name, file, type, size: sizeInMB + ' MB', downloadUrl: `/plugins/${encodeURIComponent(file)}` };
     }).filter(Boolean);
 
     res.json(plugins);
@@ -391,13 +353,7 @@ app.get('/api/raid', (req, res) => {
       else if (['exe', 'dll'].includes(ext)) type = 'Binary';
       else if (ext) type = ext.toUpperCase();
 
-      return {
-        name,
-        file,
-        type,
-        size: sizeInMB + ' MB',
-        downloadUrl: `/raid/${encodeURIComponent(file)}`
-      };
+      return { name, file, type, size: sizeInMB + ' MB', downloadUrl: `/raid/${encodeURIComponent(file)}` };
     }).filter(Boolean);
 
     res.json(tools);
@@ -424,9 +380,7 @@ app.post('/api/chat', (req, res) => {
   }
 
   const { message } = req.body;
-  if (!message || !message.trim()) {
-    return res.status(400).json({ error: 'Empty message' });
-  }
+  if (!message || !message.trim()) return res.status(400).json({ error: 'Empty message' });
 
   const user = req.session.user;
   const messages = getChat();
@@ -451,13 +405,8 @@ app.post('/api/feedback', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
   const { message } = req.body;
-  if (!message || !message.trim()) {
-    return res.status(400).json({ error: 'Message required' });
-  }
-
-  if (!WEBHOOK_URL) {
-    return res.status(500).json({ error: 'Webhook not configured' });
-  }
+  if (!message || !message.trim()) return res.status(400).json({ error: 'Message required' });
+  if (!WEBHOOK_URL) return res.status(500).json({ error: 'Webhook not configured' });
 
   const user = req.session.user;
 
@@ -470,20 +419,9 @@ app.post('/api/feedback', async (req, res) => {
           title: '📩 New Feedback',
           color: 0x00ff9c,
           fields: [
-            {
-              name: 'User',
-              value: `${user.global_name || user.username} (\`${user.id}\`)`,
-              inline: true
-            },
-            {
-              name: 'Email',
-              value: user.email || 'N/A',
-              inline: true
-            },
-            {
-              name: 'Message',
-              value: message.trim().slice(0, 1000)
-            }
+            { name: 'User', value: `${user.global_name || user.username} (\`${user.id}\`)`, inline: true },
+            { name: 'Email', value: user.email || 'N/A', inline: true },
+            { name: 'Message', value: message.trim().slice(0, 1000) }
           ],
           timestamp: new Date().toISOString()
         }]
@@ -503,9 +441,7 @@ app.post('/api/tickets', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
   const { subject, message } = req.body;
-  if (!subject || !message) {
-    return res.status(400).json({ error: 'Subject and message required' });
-  }
+  if (!subject || !message) return res.status(400).json({ error: 'Subject and message required' });
 
   const tickets = getTickets();
   const ticket = {
@@ -532,7 +468,6 @@ app.post('/api/tickets', (req, res) => {
 
 app.get('/api/tickets', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
-
   const tickets = getTickets();
   if (req.session.user.id === ADMIN_ID) return res.json(tickets);
   res.json(tickets.filter(t => t.userId === req.session.user.id));
@@ -540,14 +475,11 @@ app.get('/api/tickets', (req, res) => {
 
 app.get('/api/tickets/:id', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
-
   const ticket = getTickets().find(t => t.id === req.params.id);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
-
   if (req.session.user.id !== ADMIN_ID && ticket.userId !== req.session.user.id) {
     return res.status(403).json({ error: 'Access denied' });
   }
-
   res.json(ticket);
 });
 
@@ -555,9 +487,7 @@ app.post('/api/tickets/:id/reply', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
   const { message } = req.body;
-  if (!message || !message.trim()) {
-    return res.status(400).json({ error: 'Message required' });
-  }
+  if (!message || !message.trim()) return res.status(400).json({ error: 'Message required' });
 
   const tickets = getTickets();
   const ticket = tickets.find(t => t.id === req.params.id);
@@ -565,10 +495,7 @@ app.post('/api/tickets/:id/reply', (req, res) => {
 
   const isAdmin = req.session.user.id === ADMIN_ID;
   const isOwner = ticket.userId === req.session.user.id;
-
-  if (!isAdmin && !isOwner) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
+  if (!isAdmin && !isOwner) return res.status(403).json({ error: 'Access denied' });
 
   ticket.messages.push({
     from: isAdmin ? 'admin' : 'user',
@@ -600,6 +527,122 @@ app.post('/api/tickets/:id/close', (req, res) => {
   res.json(ticket);
 });
 
+// ======================
+// GIVEAWAYS
+// ======================
+app.get('/api/giveaways', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+
+  const now = Date.now();
+  let list = getGiveaways();
+
+  list = list.map(g => {
+    if (g.status === 'active' && new Date(g.endsAt).getTime() < now) {
+      g.status = 'ended';
+      if (!g.winners || !g.winners.length) {
+        const shuffled = [...g.entries].sort(() => Math.random() - 0.5);
+        g.winners = shuffled.slice(0, g.winnerCount).map(e => ({
+          userId: e.userId,
+          username: e.username,
+          avatar: e.avatar
+        }));
+      }
+    }
+    return g;
+  });
+  saveGiveaways(list);
+  res.json(list);
+});
+
+app.post('/api/giveaways', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+  if (req.session.user.id !== ADMIN_ID) return res.status(403).json({ error: 'Only admin can create giveaways' });
+
+  const { title, description, durationMinutes, winnerCount } = req.body;
+  if (!title || !description || !durationMinutes) {
+    return res.status(400).json({ error: 'Title, description and duration required' });
+  }
+
+  const mins = Math.max(1, parseInt(durationMinutes) || 60);
+  const winners = Math.max(1, parseInt(winnerCount) || 1);
+
+  const list = getGiveaways();
+  const giveaway = {
+    id: 'GW-' + Date.now().toString(36).toUpperCase(),
+    title: title.trim().slice(0, 100),
+    description: description.trim().slice(0, 500),
+    createdBy: req.session.user.id,
+    createdAt: new Date().toISOString(),
+    endsAt: new Date(Date.now() + mins * 60 * 1000).toISOString(),
+    winnerCount: winners,
+    status: 'active',
+    entries: [],
+    winners: []
+  };
+
+  list.unshift(giveaway);
+  saveGiveaways(list);
+  res.json(giveaway);
+});
+
+app.post('/api/giveaways/:id/enter', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+
+  const list = getGiveaways();
+  const g = list.find(x => x.id === req.params.id);
+  if (!g) return res.status(404).json({ error: 'Giveaway not found' });
+  if (g.status !== 'active') return res.status(400).json({ error: 'Giveaway has ended' });
+  if (new Date(g.endsAt).getTime() < Date.now()) return res.status(400).json({ error: 'Giveaway has ended' });
+
+  if (g.entries.find(e => e.userId === req.session.user.id)) {
+    return res.status(400).json({ error: 'You already entered' });
+  }
+
+  g.entries.push({
+    userId: req.session.user.id,
+    username: req.session.user.global_name || req.session.user.username,
+    avatar: req.session.user.avatar,
+    enteredAt: new Date().toISOString()
+  });
+
+  saveGiveaways(list);
+  res.json({ success: true, entries: g.entries.length });
+});
+
+app.get('/api/giveaways/:id/entries', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+
+  const list = getGiveaways();
+  const g = list.find(x => x.id === req.params.id);
+  if (!g) return res.status(404).json({ error: 'Not found' });
+
+  if (req.session.user.id !== ADMIN_ID && req.session.user.id !== g.createdBy) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  res.json(g.entries);
+});
+
+app.post('/api/giveaways/:id/end', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+  if (req.session.user.id !== ADMIN_ID) return res.status(403).json({ error: 'Admin only' });
+
+  const list = getGiveaways();
+  const g = list.find(x => x.id === req.params.id);
+  if (!g) return res.status(404).json({ error: 'Not found' });
+
+  g.status = 'ended';
+  const shuffled = [...g.entries].sort(() => Math.random() - 0.5);
+  g.winners = shuffled.slice(0, g.winnerCount).map(e => ({
+    userId: e.userId,
+    username: e.username,
+    avatar: e.avatar
+  }));
+
+  saveGiveaways(list);
+  res.json(g);
+});
+
 // Logout
 app.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/login'));
@@ -612,6 +655,3 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on ${BASE_URL}`);
   console.log(`🔗 Redirect URI: ${REDIRECT_URI}`);
 });
-```
-
-Restart the server after replacing the file.
