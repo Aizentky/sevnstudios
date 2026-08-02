@@ -3,8 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const router = express.Router();
 
-const USERS_FILE = path.join(__dirname, 'data', 'users.json');
-const MAINTENANCE_FILE = path.join(__dirname, 'data', 'maintenance.json');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const MAINTENANCE_FILE = path.join(DATA_DIR, 'maintenance.json');
 const ALLOWED_ADMIN_ID = process.env.ADMIN_DISCORD_ID || '1504098102171406510';
 
 // Ensure data folder + users file exist
