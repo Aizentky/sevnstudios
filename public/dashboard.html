@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -321,22 +322,20 @@
       </div>
 
       <div class="content">
-        <!-- HOME -->
         <div id="home" class="tab-panel">
           <div class="page-content">
             <h1 class="page-title">Updates</h1>
             <p class="page-desc">Latest changes</p>
             <div class="card">
               <div class="card-title">Changelog</div>
-              <p style="color:var(--text-2);font-size:0.85rem;line-height:1.6;">Admin panel, plugin upload/delete, IP logs & activity logs added.</p>
+              <p style="color:var(--text-2);font-size:0.85rem;line-height:1.6;">Admin panel, plugins delete, IP logs & activity logs.</p>
             </div>
           </div>
         </div>
 
-        <!-- CHAT -->
         <div id="chat" class="tab-panel active">
           <div class="messages" id="messages">
-            <div class="chat-empty" id="chatEmpty">
+            <div class="chat-empty">
               <div class="chat-empty-icon"><i class="fa-solid fa-comments"></i></div>
               <h3>No messages yet</h3>
               <p>Type a message below to start.</p>
@@ -347,18 +346,12 @@
               <input type="text" id="chatInput" placeholder="Message SevnHub..." onkeydown="if(event.key==='Enter')sendMessage()">
               <button class="send-btn" onclick="sendMessage()"><i class="fa-solid fa-arrow-right"></i></button>
             </div>
-            <div class="chat-hint">Global chat — everyone can see your messages. Resets every hour.</div>
+            <div class="chat-hint">Global chat — resets every hour.</div>
           </div>
         </div>
 
-        <!-- PLUGINS -->
         <div id="plugins" class="tab-panel">
           <div class="page-content">
-            <div id="pluginUploadBox" style="display:none;margin-bottom:16px;" class="card">
-              <div class="card-title">Upload Plugin</div>
-              <input type="file" id="pluginFile" style="color:var(--text-2);font-size:0.85rem;margin-bottom:10px;">
-              <button class="submit-btn" onclick="uploadPlugin()">Upload</button>
-            </div>
             <div class="files-panel">
               <div class="files-header"><i class="fa-solid fa-folder"></i> All Files</div>
               <div id="pluginsGrid"><div class="files-empty">Loading...</div></div>
@@ -366,7 +359,6 @@
           </div>
         </div>
 
-        <!-- LICENSE -->
         <div id="license" class="tab-panel">
           <div class="page-content">
             <h1 class="page-title">Licenses</h1>
@@ -385,7 +377,6 @@
           </div>
         </div>
 
-        <!-- RAID -->
         <div id="raid" class="tab-panel">
           <div class="raid-lock" id="raidLock">
             <div class="raid-lock-icon"><i class="fa-solid fa-lock"></i></div>
@@ -405,16 +396,15 @@
           </div>
         </div>
 
-        <!-- TICKETS -->
         <div id="ticket" class="tab-panel">
           <div class="page-content">
             <h1 class="page-title">Tickets</h1>
-            <p class="page-desc">Create a support ticket — staff will reply</p>
+            <p class="page-desc">Create a support ticket</p>
             <div id="ticketAdminActions" style="display:none;margin-bottom:16px;gap:8px;flex-wrap:wrap;">
-              <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="clearClosedTickets()">Clear Closed Tickets</button>
-              <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.25);color:#ff4466;" onclick="clearAllTickets()">Clear All Tickets</button>
+              <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="clearClosedTickets()">Clear Closed</button>
+              <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.25);color:#ff4466;" onclick="clearAllTickets()">Clear All</button>
             </div>
-            <div class="card" id="createTicketCard">
+            <div class="card">
               <div class="card-title">New Ticket</div>
               <input class="ticket-input" id="ticketSubject" placeholder="Subject..." style="margin-bottom:10px;">
               <textarea id="ticketMessage" placeholder="Describe your issue..."></textarea>
@@ -425,42 +415,39 @@
           </div>
         </div>
 
-        <!-- GIVEAWAYS -->
         <div id="giveaways" class="tab-panel">
           <div class="page-content">
             <h1 class="page-title">Giveaways</h1>
-            <p class="page-desc">Enter active giveaways or create one (admin only)</p>
+            <p class="page-desc">Enter or create giveaways</p>
             <div id="gwAdminActions" style="display:none;margin-bottom:16px;">
-              <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="clearEndedGiveaways()">Clear Ended Giveaways</button>
+              <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="clearEndedGiveaways()">Clear Ended</button>
             </div>
             <div class="card" id="createGiveawayCard" style="display:none;">
               <div class="card-title">Create Giveaway</div>
               <input class="ticket-input" id="gwTitle" placeholder="Title..." style="margin-bottom:10px;">
               <textarea id="gwDesc" placeholder="Description..." style="margin-bottom:10px;"></textarea>
               <div style="display:flex;gap:10px;max-width:520px;margin-bottom:10px;">
-                <input class="ticket-input" id="gwDuration" type="number" min="1" value="60" placeholder="Duration (minutes)" style="flex:1;">
-                <input class="ticket-input" id="gwWinners" type="number" min="1" value="1" placeholder="Winners" style="width:120px;">
+                <input class="ticket-input" id="gwDuration" type="number" min="1" value="60" style="flex:1;">
+                <input class="ticket-input" id="gwWinners" type="number" min="1" value="1" style="width:120px;">
               </div>
-              <button class="submit-btn" onclick="createGiveaway()">Create Giveaway</button>
+              <button class="submit-btn" onclick="createGiveaway()">Create</button>
             </div>
             <div id="giveawaysList" style="margin-top:16px;"></div>
           </div>
         </div>
 
-        <!-- FEEDBACK -->
         <div id="feedback" class="tab-panel">
           <div class="page-content">
             <h1 class="page-title">Feedback</h1>
-            <p class="page-desc">Share your thoughts — sent to Discord</p>
+            <p class="page-desc">Sent to Discord</p>
             <div class="card">
               <textarea id="feedbackText" placeholder="Write your feedback..."></textarea>
               <button class="submit-btn" onclick="submitFeedback()">Submit</button>
-              <div class="feedback-ok" id="feedbackStatus">✓ Sent successfully</div>
+              <div class="feedback-ok" id="feedbackStatus">✓ Sent</div>
             </div>
           </div>
         </div>
 
-        <!-- ADMIN USERS -->
         <div id="admin-users" class="tab-panel">
           <div class="page-content">
             <h1 class="page-title">Users</h1>
@@ -469,20 +456,18 @@
           </div>
         </div>
 
-        <!-- ADMIN MAINTENANCE -->
         <div id="admin-maintenance" class="tab-panel">
           <div class="page-content">
             <h1 class="page-title">Maintenance</h1>
-            <p class="page-desc">Toggle site maintenance mode</p>
+            <p class="page-desc">Toggle site mode</p>
             <div class="card">
               <div class="card-title">Status</div>
               <div id="maintStatus" style="margin-bottom:16px;font-size:1.1rem;font-weight:700;">—</div>
-              <button class="submit-btn" id="maintToggleBtn" onclick="toggleMaintenance()">Toggle Maintenance</button>
+              <button class="submit-btn" onclick="toggleMaintenance()">Toggle Maintenance</button>
             </div>
           </div>
         </div>
 
-        <!-- ADMIN IP LOGS -->
         <div id="admin-iplogs" class="tab-panel">
           <div class="page-content">
             <h1 class="page-title">IP Logs</h1>
@@ -492,11 +477,10 @@
           </div>
         </div>
 
-        <!-- ADMIN LOGS -->
         <div id="admin-logs" class="tab-panel">
           <div class="page-content">
             <h1 class="page-title">Activity Logs</h1>
-            <p class="page-desc">Admin actions history</p>
+            <p class="page-desc">Admin actions</p>
             <button class="submit-btn" style="margin-bottom:16px;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="clearLogs()">Clear Logs</button>
             <div id="activityLogsList"><div class="files-empty">Loading...</div></div>
           </div>
@@ -505,7 +489,6 @@
     </div>
   </div>
 
-  <!-- PROFILE MODAL -->
   <div id="profileModal">
     <div class="profile-box">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
@@ -528,7 +511,6 @@
     const RAID_PASSWORD = 'sevntools2026paid';
     const ADMIN_DISCORD_ID = '1504098102171406510';
     let currentUser = null;
-    let chatPoll = null;
 
     async function loadUser() {
       try {
@@ -550,9 +532,8 @@
         if (adminNav) adminNav.style.display = (user.id === ADMIN_DISCORD_ID) ? 'block' : 'none';
 
         updateAdminActions();
-        updatePluginAdmin();
         loadChat();
-        chatPoll = setInterval(loadChat, 3000);
+        setInterval(loadChat, 3000);
       } catch {
         location.href = '/login';
       }
@@ -560,15 +541,10 @@
 
     function updateAdminActions() {
       const isAdmin = currentUser && currentUser.id === ADMIN_DISCORD_ID;
-      const gwActions = document.getElementById('gwAdminActions');
-      const ticketActions = document.getElementById('ticketAdminActions');
-      if (gwActions) gwActions.style.display = isAdmin ? 'block' : 'none';
-      if (ticketActions) ticketActions.style.display = isAdmin ? 'flex' : 'none';
-    }
-
-    function updatePluginAdmin() {
-      const box = document.getElementById('pluginUploadBox');
-      if (box) box.style.display = (currentUser && currentUser.id === ADMIN_DISCORD_ID) ? 'block' : 'none';
+      const gw = document.getElementById('gwAdminActions');
+      const tk = document.getElementById('ticketAdminActions');
+      if (gw) gw.style.display = isAdmin ? 'block' : 'none';
+      if (tk) tk.style.display = isAdmin ? 'flex' : 'none';
     }
 
     function openProfile() {
@@ -583,14 +559,8 @@
       document.getElementById('profileRawUsername').textContent = currentUser.username;
       document.getElementById('profileModal').style.display = 'flex';
     }
-
-    function closeProfile() {
-      document.getElementById('profileModal').style.display = 'none';
-    }
-
-    document.getElementById('profileModal').addEventListener('click', (e) => {
-      if (e.target.id === 'profileModal') closeProfile();
-    });
+    function closeProfile() { document.getElementById('profileModal').style.display = 'none'; }
+    document.getElementById('profileModal').addEventListener('click', e => { if (e.target.id === 'profileModal') closeProfile(); });
 
     function switchTab(id, btn) {
       document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
@@ -607,13 +577,8 @@
       if (id === 'admin-logs') loadActivityLogs();
     }
 
-    function escapeHtml(text) {
-      const d = document.createElement('div');
-      d.textContent = text;
-      return d.innerHTML;
-    }
+    function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
-    // Chat
     async function loadChat() {
       try {
         const res = await fetch('/api/chat');
@@ -649,14 +614,10 @@
       if (!text) return;
       input.value = '';
       try {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text })
-        });
+        const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
         if (!res.ok) { const err = await res.json(); alert(err.error || 'Failed'); return; }
         loadChat();
-      } catch { alert('Failed to send'); }
+      } catch { alert('Failed'); }
     }
 
     function copyLicense() {
@@ -668,21 +629,15 @@
       const text = document.getElementById('feedbackText').value.trim();
       if (!text) return alert('Write something');
       try {
-        const res = await fetch('/api/feedback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text })
-        });
+        const res = await fetch('/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
         if (!res.ok) throw new Error();
         document.getElementById('feedbackStatus').style.display = 'block';
         document.getElementById('feedbackText').value = '';
         setTimeout(() => document.getElementById('feedbackStatus').style.display = 'none', 3000);
-      } catch { alert('Failed to send feedback'); }
+      } catch { alert('Failed'); }
     }
 
-    // Plugins
     async function loadPlugins() {
-      updatePluginAdmin();
       const grid = document.getElementById('pluginsGrid');
       const isAdmin = currentUser && currentUser.id === ADMIN_DISCORD_ID;
       try {
@@ -700,23 +655,7 @@
             ${isAdmin ? `<button onclick="deletePlugin('${escapeHtml(p.file)}')" style="background:rgba(255,68,102,0.15);color:#ff4466;border:none;padding:5px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:inherit;">Delete</button>` : ''}
           </div>
         `).join('');
-      } catch {
-        grid.innerHTML = `<div class="files-empty">Failed to load</div>`;
-      }
-    }
-
-    async function uploadPlugin() {
-      const input = document.getElementById('pluginFile');
-      if (!input.files.length) return alert('Select a file');
-      const form = new FormData();
-      form.append('file', input.files[0]);
-      try {
-        const res = await fetch('/api/admin/plugins/upload', { method: 'POST', body: form });
-        if (!res.ok) return alert('Upload failed');
-        input.value = '';
-        loadPlugins();
-        alert('Uploaded!');
-      } catch { alert('Upload failed'); }
+      } catch { grid.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
     async function deletePlugin(filename) {
@@ -728,7 +667,6 @@
       } catch { alert('Failed'); }
     }
 
-    // Raid
     function unlockRaid() {
       const input = document.getElementById('raidKey');
       const error = document.getElementById('raidError');
@@ -764,34 +702,24 @@
         grid.innerHTML = list.map(t => `
           <a href="${t.downloadUrl}" class="file-row" download>
             <div class="file-icon"><i class="fa-solid fa-file"></i></div>
-            <div class="file-info">
-              <div class="file-name">${escapeHtml(t.file)}</div>
-              <div class="file-meta">${t.size} · ${t.type}</div>
-            </div>
+            <div class="file-info"><div class="file-name">${escapeHtml(t.file)}</div><div class="file-meta">${t.size} · ${t.type}</div></div>
             <div class="file-download">Download</div>
           </a>
         `).join('');
-      } catch {
-        grid.innerHTML = `<div class="files-empty">Failed to load</div>`;
-      }
+      } catch { grid.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
-    // Tickets
     async function createTicket() {
       const subject = document.getElementById('ticketSubject').value.trim();
       const message = document.getElementById('ticketMessage').value.trim();
-      if (!subject || !message) return alert('Subject and message required');
+      if (!subject || !message) return alert('Required');
       try {
-        const res = await fetch('/api/tickets', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subject, message })
-        });
+        const res = await fetch('/api/tickets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject, message }) });
         if (!res.ok) throw new Error();
         document.getElementById('ticketSubject').value = '';
         document.getElementById('ticketMessage').value = '';
         loadTickets();
-      } catch { alert('Failed to create ticket'); }
+      } catch { alert('Failed'); }
     }
 
     async function loadTickets() {
@@ -802,7 +730,7 @@
       try {
         const res = await fetch('/api/tickets');
         const tickets = await res.json();
-        if (!tickets.length) { list.innerHTML = `<div class="files-empty">No tickets yet</div>`; return; }
+        if (!tickets.length) { list.innerHTML = `<div class="files-empty">No tickets</div>`; return; }
         list.innerHTML = tickets.map(t => `
           <div class="card" style="cursor:pointer;" onclick="openTicket('${t.id}')">
             <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -814,9 +742,7 @@
             </div>
           </div>
         `).join('');
-      } catch {
-        list.innerHTML = `<div class="files-empty">Failed to load</div>`;
-      }
+      } catch { list.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
     async function openTicket(id) {
@@ -829,10 +755,7 @@
         const t = await res.json();
         const msgs = t.messages.map(m => `
           <div class="ticket-msg">
-            <div class="ticket-msg-meta">
-              <strong style="color:${m.from === 'admin' ? 'var(--accent)' : 'var(--text-2)'}">${m.from === 'admin' ? '🛡 Staff' : escapeHtml(m.username)}</strong>
-              · ${new Date(m.at).toLocaleString()}
-            </div>
+            <div class="ticket-msg-meta"><strong style="color:${m.from === 'admin' ? 'var(--accent)' : 'var(--text-2)'}">${m.from === 'admin' ? '🛡 Staff' : escapeHtml(m.username)}</strong> · ${new Date(m.at).toLocaleString()}</div>
             <div style="font-size:0.85rem;">${escapeHtml(m.text)}</div>
           </div>
         `).join('');
@@ -840,70 +763,47 @@
           <button onclick="loadTickets()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:0.85rem;margin-bottom:16px;font-family:inherit;">← Back</button>
           <div class="card" style="max-width:600px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-              <div>
-                <div style="font-weight:700;font-size:1rem;">${escapeHtml(t.subject)}</div>
-                <div style="font-size:0.72rem;color:var(--text-4);">${t.id}</div>
-              </div>
+              <div><div style="font-weight:700;">${escapeHtml(t.subject)}</div><div style="font-size:0.72rem;color:var(--text-4);">${t.id}</div></div>
               <span class="status-badge ${t.status === 'closed' ? 'status-closed' : ''}">${t.status}</span>
             </div>
             <div style="margin-bottom:14px;">${msgs}</div>
             ${t.status !== 'closed' ? `
-              <textarea id="replyText" placeholder="Write a reply..."></textarea>
+              <textarea id="replyText" placeholder="Reply..."></textarea>
               <div style="display:flex;gap:8px;margin-top:10px;">
                 <button class="submit-btn" onclick="replyTicket('${t.id}')">Reply</button>
                 <button class="submit-btn" style="background:rgba(255,68,102,0.15);color:#ff4466;" onclick="closeTicket('${t.id}')">Close</button>
               </div>
-            ` : '<p style="color:var(--text-4);font-size:0.85rem;">This ticket is closed.</p>'}
+            ` : '<p style="color:var(--text-4);font-size:0.85rem;">Closed</p>'}
           </div>
         `;
-      } catch {
-        view.innerHTML = `<div class="files-empty">Failed to load ticket</div>`;
-      }
+      } catch { view.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
     async function replyTicket(id) {
       const text = document.getElementById('replyText').value.trim();
       if (!text) return alert('Write a reply');
       try {
-        const res = await fetch('/api/tickets/' + id + '/reply', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text })
-        });
+        const res = await fetch('/api/tickets/' + id + '/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
         if (!res.ok) throw new Error();
         openTicket(id);
-      } catch { alert('Failed to send reply'); }
+      } catch { alert('Failed'); }
     }
 
     async function closeTicket(id) {
-      if (!confirm('Close this ticket?')) return;
-      try {
-        await fetch('/api/tickets/' + id + '/close', { method: 'POST' });
-        openTicket(id);
-      } catch { alert('Failed to close'); }
+      if (!confirm('Close?')) return;
+      try { await fetch('/api/tickets/' + id + '/close', { method: 'POST' }); openTicket(id); } catch { alert('Failed'); }
     }
 
     async function clearClosedTickets() {
-      if (!confirm('Clear all closed tickets?')) return;
-      try {
-        const res = await fetch('/api/tickets/clear-closed', { method: 'DELETE' });
-        if (!res.ok) return alert('Failed');
-        loadTickets();
-        alert('Closed tickets cleared');
-      } catch { alert('Failed'); }
+      if (!confirm('Clear closed tickets?')) return;
+      try { await fetch('/api/tickets/clear-closed', { method: 'DELETE' }); loadTickets(); } catch { alert('Failed'); }
     }
 
     async function clearAllTickets() {
       if (!confirm('Clear ALL tickets?')) return;
-      try {
-        const res = await fetch('/api/tickets/clear', { method: 'DELETE' });
-        if (!res.ok) return alert('Failed');
-        loadTickets();
-        alert('All tickets cleared');
-      } catch { alert('Failed'); }
+      try { await fetch('/api/tickets/clear', { method: 'DELETE' }); loadTickets(); } catch { alert('Failed'); }
     }
 
-    // Giveaways
     async function loadGiveaways() {
       const createCard = document.getElementById('createGiveawayCard');
       if (currentUser && currentUser.id === ADMIN_DISCORD_ID) createCard.style.display = 'block';
@@ -913,16 +813,15 @@
       try {
         const res = await fetch('/api/giveaways');
         const giveaways = await res.json();
-        if (!giveaways.length) { list.innerHTML = `<div class="files-empty">No giveaways yet</div>`; return; }
+        if (!giveaways.length) { list.innerHTML = `<div class="files-empty">No giveaways</div>`; return; }
 
         list.innerHTML = giveaways.map(g => {
           const ends = new Date(g.endsAt);
           const isActive = g.status === 'active' && ends > new Date();
           const alreadyIn = g.entries.some(e => e.userId === (currentUser && currentUser.id));
           const isAdmin = currentUser && currentUser.id === ADMIN_DISCORD_ID;
-
           let winnersHtml = '';
-          if (g.status === 'ended' && g.winners && g.winners.length) {
+          if (g.status === 'ended' && g.winners?.length) {
             winnersHtml = `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-subtle);">
               <div style="font-size:0.75rem;color:var(--accent);font-weight:600;margin-bottom:6px;">🏆 Winners</div>
               ${g.winners.map(w => `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:0.82rem;">
@@ -931,11 +830,10 @@
               </div>`).join('')}
             </div>`;
           }
-
           return `<div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div style="display:flex;justify-content:space-between;gap:12px;">
               <div>
-                <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">${escapeHtml(g.title)}</div>
+                <div style="font-weight:700;margin-bottom:4px;">${escapeHtml(g.title)}</div>
                 <div style="font-size:0.82rem;color:var(--text-3);margin-bottom:8px;">${escapeHtml(g.description)}</div>
                 <div style="font-size:0.72rem;color:var(--text-4);">${g.entries.length} entries · ${g.winnerCount} winner(s) · Ends ${ends.toLocaleString()}</div>
               </div>
@@ -943,17 +841,15 @@
             </div>
             ${winnersHtml}
             <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
-              ${isActive ? `<button class="submit-btn" style="margin-top:0;" onclick="enterGiveaway('${g.id}')" ${alreadyIn ? 'disabled style="opacity:0.5;cursor:not-allowed;margin-top:0;"' : ''}>${alreadyIn ? '✓ Entered' : 'Enter Giveaway'}</button>` : ''}
+              ${isActive ? `<button class="submit-btn" style="margin-top:0;" onclick="enterGiveaway('${g.id}')" ${alreadyIn ? 'disabled style="opacity:0.5;margin-top:0;"' : ''}>${alreadyIn ? '✓ Entered' : 'Enter'}</button>` : ''}
               ${isAdmin ? `
-                <button class="submit-btn" style="margin-top:0;background:rgba(0,255,156,0.1);color:var(--accent);" onclick="viewEntries('${g.id}')">View Entries (${g.entries.length})</button>
-                ${isActive ? `<button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="endGiveaway('${g.id}')">End Now</button>` : ''}
+                <button class="submit-btn" style="margin-top:0;background:rgba(0,255,156,0.1);color:var(--accent);" onclick="viewEntries('${g.id}')">Entries (${g.entries.length})</button>
+                ${isActive ? `<button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="endGiveaway('${g.id}')">End</button>` : ''}
               ` : ''}
             </div>
           </div>`;
         }).join('');
-      } catch {
-        list.innerHTML = `<div class="files-empty">Failed to load</div>`;
-      }
+      } catch { list.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
     async function createGiveaway() {
@@ -961,18 +857,12 @@
       const description = document.getElementById('gwDesc').value.trim();
       const durationMinutes = document.getElementById('gwDuration').value;
       const winnerCount = document.getElementById('gwWinners').value;
-      if (!title || !description) return alert('Title and description required');
+      if (!title || !description) return alert('Required');
       try {
-        const res = await fetch('/api/giveaways', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, description, durationMinutes, winnerCount })
-        });
+        const res = await fetch('/api/giveaways', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, description, durationMinutes, winnerCount }) });
         if (!res.ok) { const err = await res.json(); return alert(err.error || 'Failed'); }
         document.getElementById('gwTitle').value = '';
         document.getElementById('gwDesc').value = '';
-        document.getElementById('gwDuration').value = '60';
-        document.getElementById('gwWinners').value = '1';
         loadGiveaways();
       } catch { alert('Failed'); }
     }
@@ -991,13 +881,13 @@
         const res = await fetch('/api/giveaways/' + id + '/entries');
         const entries = await res.json();
         if (!res.ok) return alert('Failed');
-        if (!entries.length) return alert('No entries yet');
-        alert(`Entries (${entries.length}):\n\n` + entries.map((e, i) => `${i + 1}. ${e.username} (${e.userId})`).join('\n'));
+        if (!entries.length) return alert('No entries');
+        alert(`Entries (${entries.length}):\n\n` + entries.map((e, i) => `${i + 1}. ${e.username}`).join('\n'));
       } catch { alert('Failed'); }
     }
 
     async function endGiveaway(id) {
-      if (!confirm('End this giveaway and pick winners now?')) return;
+      if (!confirm('End now?')) return;
       try {
         const res = await fetch('/api/giveaways/' + id + '/end', { method: 'POST' });
         if (!res.ok) return alert('Failed');
@@ -1006,16 +896,10 @@
     }
 
     async function clearEndedGiveaways() {
-      if (!confirm('Clear all ended giveaways?')) return;
-      try {
-        const res = await fetch('/api/giveaways/clear-ended', { method: 'DELETE' });
-        if (!res.ok) return alert('Failed');
-        loadGiveaways();
-        alert('Ended giveaways cleared');
-      } catch { alert('Failed'); }
+      if (!confirm('Clear ended?')) return;
+      try { await fetch('/api/giveaways/clear-ended', { method: 'DELETE' }); loadGiveaways(); } catch { alert('Failed'); }
     }
 
-    // Admin Users
     async function loadAdminUsers() {
       const list = document.getElementById('adminUsersList');
       try {
@@ -1023,24 +907,22 @@
         const users = await res.json();
         if (!users.length) { list.innerHTML = `<div class="files-empty">No users</div>`; return; }
         list.innerHTML = users.map(u => `
-          <div class="card" style="display:flex;align-items:center;gap:12px;justify-content:space-between;">
+          <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
             <div style="display:flex;align-items:center;gap:12px;">
               <img src="${u.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png'}" width="36" height="36" style="border-radius:8px;">
               <div>
                 <div style="font-weight:600;">${escapeHtml(u.global_name || u.username)}</div>
-                <div style="font-size:0.72rem;color:var(--text-4);">${u.id} · ${u.email || 'no email'}</div>
+                <div style="font-size:0.72rem;color:var(--text-4);">${u.id}</div>
               </div>
             </div>
             <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="deleteUser('${u.id}')">Delete</button>
           </div>
         `).join('');
-      } catch {
-        list.innerHTML = `<div class="files-empty">Failed to load</div>`;
-      }
+      } catch { list.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
     async function deleteUser(id) {
-      if (!confirm('Delete this user?')) return;
+      if (!confirm('Delete user?')) return;
       try {
         const res = await fetch('/api/admin/users/' + id, { method: 'DELETE' });
         if (!res.ok) return alert('Failed');
@@ -1048,7 +930,6 @@
       } catch { alert('Failed'); }
     }
 
-    // Maintenance
     async function loadMaintenance() {
       try {
         const res = await fetch('/api/admin/maintenance');
@@ -1062,42 +943,31 @@
       try {
         const res = await fetch('/api/admin/maintenance');
         const data = await res.json();
-        await fetch('/api/admin/maintenance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ enabled: !data.enabled })
-        });
+        await fetch('/api/admin/maintenance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: !data.enabled }) });
         loadMaintenance();
       } catch { alert('Failed'); }
     }
 
-    // IP Logs
     async function loadIpLogs() {
       const list = document.getElementById('ipLogsList');
       try {
         const res = await fetch('/api/admin/ip-logs');
         const logs = await res.json();
-        if (!logs.length) { list.innerHTML = `<div class="files-empty">No IP logs</div>`; return; }
+        if (!logs.length) { list.innerHTML = `<div class="files-empty">No logs</div>`; return; }
         list.innerHTML = logs.map(l => `
           <div class="card" style="padding:12px 16px;">
             <div style="font-weight:600;font-size:0.85rem;">${escapeHtml(l.username)}</div>
             <div style="font-size:0.75rem;color:var(--text-4);margin-top:3px;">IP: <code>${l.ip}</code> · ${new Date(l.at).toLocaleString()}</div>
           </div>
         `).join('');
-      } catch {
-        list.innerHTML = `<div class="files-empty">Failed to load</div>`;
-      }
+      } catch { list.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
     async function clearIpLogs() {
-      if (!confirm('Clear all IP logs?')) return;
-      try {
-        await fetch('/api/admin/ip-logs', { method: 'DELETE' });
-        loadIpLogs();
-      } catch { alert('Failed'); }
+      if (!confirm('Clear IP logs?')) return;
+      try { await fetch('/api/admin/ip-logs', { method: 'DELETE' }); loadIpLogs(); } catch { alert('Failed'); }
     }
 
-    // Activity Logs
     async function loadActivityLogs() {
       const list = document.getElementById('activityLogsList');
       try {
@@ -1110,17 +980,12 @@
             <div style="font-size:0.75rem;color:var(--text-4);margin-top:3px;">${escapeHtml(l.detail || '')} · ${new Date(l.at).toLocaleString()}</div>
           </div>
         `).join('');
-      } catch {
-        list.innerHTML = `<div class="files-empty">Failed to load</div>`;
-      }
+      } catch { list.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
     async function clearLogs() {
-      if (!confirm('Clear all activity logs?')) return;
-      try {
-        await fetch('/api/admin/logs', { method: 'DELETE' });
-        loadActivityLogs();
-      } catch { alert('Failed'); }
+      if (!confirm('Clear logs?')) return;
+      try { await fetch('/api/admin/logs', { method: 'DELETE' }); loadActivityLogs(); } catch { alert('Failed'); }
     }
 
     loadUser();
