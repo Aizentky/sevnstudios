@@ -42,7 +42,17 @@ function setMaintenance(enabled) {
 
 // Middleware — only allow your Discord ID
 function requireAdmin(req, res, next) {
-  if (!req.session.user) return res.redirect('/login');
+  if (!req.session.user) {
+    return res.redirect('/login');
+  }
+
+  if (req.session.user.id !== ALLOWED_ADMIN_ID) {
+    // Not admin → send back to dashboard
+    return res.redirect('/dashboard');
+  }
+
+  next();
+}
 
   if (req.session.user.id !== ALLOWED_ADMIN_ID) {
     return res.status(403).send(`
