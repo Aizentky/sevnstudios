@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SevnHub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Orbitron:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-abyss: #05080a;
+      --bg-deep: #0a0c0f;
+      --bg-surface: #0f1218;
+      --bg-card: rgba(10, 18, 16, 0.55);
+      --bg-elevated: rgba(12, 22, 18, 0.65);
+      --bg-hover: rgba(0, 255, 156, 0.06);
+      --border-subtle: rgba(0, 255, 156, 0.08);
+      --border-default: rgba(0, 255, 156, 0.12);
+      --border-active: rgba(0, 255, 156, 0.3);
+      --accent: #00ff9c;
+      --accent-soft: #33ffb0;
+      --accent-dim: #00a86b;
+      --accent-bg: rgba(0, 255, 156, 0.08);
+      --text-1: #e6edf3;
+      --text-2: #9bb0c4;
+      --text-3: #6b7a8f;
+      --text-4: #3a4555;
+      --sidebar-w: 250px;
+      --topbar-h: 60px;
+      --radius: 12px;
+      --radius-lg: 16px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--bg-abyss);
+      color: var(--text-1);
+      height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,255,156,0.12); border-radius: 3px; }
+
+    /* Background */
+    .bg-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-orb-1 {
+      width: 600px; height: 600px;
+      top: -200px; right: -100px;
+      background: radial-gradient(circle, rgba(0,255,156,0.07), transparent 70%);
+      animation: od1 20s ease-in-out infinite;
+    }
+    .bg-orb-2 {
+      width: 500px; height: 500px;
+      bottom: -150px; left: -50px;
+      background: radial-gradient(circle, rgba(0,255,156,0.05), transparent 70%);
+      animation: od2 25s ease-in-out infinite;
+    }
+    @keyframes od1 {
+      0%,100% { transform: translate(0,0) scale(1); }
+      50% { transform: translate(-60px,40px) scale(1.1); }
+    }
+    @keyframes od2 {
+      0%,100% { transform: translate(0,0); }
+      50% { transform: translate(50px,-40px) scale(1.15); }
+    }
+
+    .app { display: flex; height: 100vh; position: relative; z-index: 1; }
+
+    /* ========== SIDEBAR ========== */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: rgba(8, 12, 10, 0.94);
+      backdrop-filter: blur(32px) saturate(1.3);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px;
+      height: var(--topbar-h);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .sidebar-logo {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, var(--accent-dim), var(--accent));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(0,255,156,0.3);
+      flex-shrink: 0;
+    }
+
+    .sidebar-brand {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 0.92rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .nav {
+      flex: 1;
+      padding: 16px 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .nav-label {
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-4);
+      padding: 16px 12px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      color: var(--text-3);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      font-family: inherit;
+      transition: all 0.25s;
+      text-align: left;
+      width: 100%;
+      position: relative;
+    }
+
+    .nav-item i { width: 20px; text-align: center; font-size: 0.9rem; }
+
+    .nav-item:hover {
+      color: var(--text-2);
+      background: var(--bg-hover);
+    }
+
+    .nav-item.active {
+      color: var(--accent-soft);
+      background: var(--accent-bg);
+    }
+
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 20px;
+      background: var(--accent);
+      border-radius: 0 3px 3px 0;
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border-radius: 10px;
+    }
+
+    .sidebar-user img {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      object-fit: cover;
+    }
+
+    .sidebar-user-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .sidebar-user-role {
+      font-size: 0.68rem;
+      color: var(--text-4);
+    }
+
+    /* ========== MAIN ========== */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .topbar {
+      height: var(--topbar-h);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      background: rgba(5, 8, 10, 0.75);
+      backdrop-filter: blur(24px);
+      flex-shrink: 0;
+    }
+
+    .topbar-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .topbar-title span {
+      color: var(--text-4);
+      font-weight: 400;
+      margin-left: 6px;
+    }
+
+    .btn-logout {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,68,102,0.15);
+      background: transparent;
+      color: var(--text-3);
+      cursor: pointer;
+      transition: all 0.25s;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-logout:hover {
+      color: #ff4466;
+      border-color: rgba(255,68,102,0.35);
+      background: rgba(255,68,102,0.1);
+    }
+
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .tab-panel {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      overflow: hidden;
+      animation: pgIn 0.4s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    .tab-panel.active { display: flex; }
+
+    @keyframes pgIn {
+      from { transform: translateY(12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .page-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px;
+    }
+
+    .page-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 4px;
+    }
+
+    .page-desc {
+      color: var(--text-3);
+      font-size: 0.85rem;
+      margin-bottom: 24px;
+    }
+
+    /* ========== FILE LIST ========== */
+    .files-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      max-width: 680px;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+
+    .files-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 20px 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .files-header i { color: var(--accent); font-size: 0.9rem; }
+
+    .file-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 18px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.25s;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      margin: 0 6px 2px;
+    }
+
+    .file-row:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-subtle);
+    }
+
+    .file-icon {
+      width: 40px;
+      height: 40px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--text-3);
+      font-size: 0.95rem;
+    }
+
+    .file-info { flex: 1; min-width: 0; }
+
+    .file-name {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-1);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-meta {
+      font-size: 0.72rem;
+      color: var(--text-4);
+      margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .file-download {
+      opacity: 0;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent);
+      transition: opacity 0.2s;
+    }
+
+    .file-row:hover .file-download { opacity: 1; }
+
+    .files-empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-4);
+      font-size: 0.85rem;
+    }
+
+    /* ========== CHAT ========== */
+    .chat-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--text-3);
+    }
+
+    .chat-empty-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 6px;
+      color: var(--accent);
+      font-size: 1.2rem;
+      box-shadow: 0 0 30px rgba(0,255,156,0.1);
+    }
+
+    .chat-empty h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-1);
+    }
+
+    .chat-empty p { font-size: 0.82rem; color: var(--text-3); }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message {
+      max-width: 60%;
+      padding: 10px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+
+    .chat-input-bar { padding: 14px 24px 20px; }
+
+    .chat-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 7px 8px 7px 16px;
+      transition: border-color 0.25s;
+    }
+
+    .chat-input-wrap:focus-within {
+      border-color: var(--border-active);
+      box-shadow: 0 0 0 3px rgba(0,255,156,0.06);
+    }
+
+    .chat-input-wrap input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-1);
+      font-size: 0.88rem;
+      font-family: inherit;
+    }
+
+    .chat-input-wrap input::placeholder { color: var(--text-4); }
+
+    .send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-dim), var(--accent));
+      border: none;
+      color: var(--bg-abyss);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.85rem;
+      box-shadow: 0 0 16px rgba(0,255,156,0.25);
+    }
+
+    .chat-hint {
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--text-4);
+      margin-top: 8px;
+    }
+
+    /* ========== CARDS ========== */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 12px;
+      max-width: 480px;
+      backdrop-filter: blur(12px);
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-3);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .license-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+    }
+
+    .copy-btn {
+      background: linear-gradient(135deg, var(--accent-dim), var(--accent));
+      color: var(--bg-abyss);
+      border: none;
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-bg);
+      color: var(--accent-soft);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid rgba(0,255,156,0.15);
+    }
+
+    .status-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* Raid lock */
+    .raid-lock {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .raid-lock-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ff4466;
+      font-size: 1.2rem;
+      margin-bottom: 4px;
+    }
+
+    .raid-lock h3 { font-size: 1.1rem; font-weight: 700; }
+    .raid-lock p { color: var(--text-3); font-size: 0.85rem; }
+
+    .raid-input-wrap {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 340px;
+      margin-top: 6px;
+    }
+
+    .raid-input-wrap input {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: var(--text-1);
+      font-size: 0.88rem;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .raid-input-wrap input:focus {
+      border-color: var(--border-active);
+    }
+
+    .raid-unlock-btn {
+      background: linear-gradient(135deg, var(--accent-dim), var(--accent));
+      color: var(--bg-abyss);
+      border: none;
+      padding: 0 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .raid-error {
+      color: #ff4466;
+      font-size: 0.8rem;
+      display: none;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--text-1);
+      font-size: 0.85rem;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+      max-width: 480px;
+    }
+
+    textarea:focus { border-color: var(--border-active); }
+
+    .submit-btn {
+      margin-top: 12px;
+      background: linear-gradient(135deg, var(--accent-dim), var(--accent));
+      color: var(--bg-abyss);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 9px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .feedback-ok {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: var(--accent);
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 64px; }
+      .sidebar-brand, .nav-item span, .sidebar-user-info, .nav-label { display: none; }
+      .nav-item { justify-content: center; }
+      .page-content { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <i class="fa-solid fa-hexagon-nodes" style="color:#05080a;font-size:0.9rem;"></i>
+        </div>
+        <div class="sidebar-brand">SEVN</div>
+      </div>
+
+      <nav class="nav">
+        <div class="nav-label">Main</div>
+
+        <button class="nav-item" onclick="switchTab('home', this)">
+          <i class="fa-solid fa-house"></i>
+          <span>Updates</span>
+        </button>
+
+        <button class="nav-item active" onclick="switchTab('chat', this)">
+          <i class="fa-solid fa-comments"></i>
+          <span>Chat</span>
+        </button>
+
+        <button class="nav-item" onclick="switchTab('plugins', this)">
+          <i class="fa-solid fa-folder"></i>
+          <span>Plugins</span>
+        </button>
+
+        <button class="nav-item" onclick="switchTab('license', this)">
+          <i class="fa-solid fa-key"></i>
+          <span>Licenses</span>
+        </button>
+
+        <button class="nav-item" onclick="switchTab('raid', this)">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>777 Raid Tools</span>
+        </button>
+
+        <div class="nav-label">Support</div>
+
+        <button class="nav-item" onclick="switchTab('ticket', this)">
+          <i class="fa-solid fa-ticket"></i>
+          <span>Ticket</span>
+        </button>
+      </nav>
+
+     <button class="nav-item" onclick="switchTab('feedback', this)">
+          <i class="fa-solid fa-ticket"></i>
+          <span>Feedback</span>
+        </button>
+      </nav>
+
+
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <img id="user-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="">
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="user-name">Loading...</div>
+            <div class="sidebar-user-role" id="user-email"></div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title">SevnHub <span>Dashboard</span></div>
+        <a href="/logout" class="btn-logout">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </a>
+      </div>
+
+      <div class="content">
+        <!-- HOME -->
+        <div id="home" class="tab-panel">
+          <div class="page-content">
+            <h1 class="page-title">Home</h1>
+            <p class="page-desc">Welcome to SevnHub</p>
+            <div class="card">
+              <div class="card-title">Getting Started</div>
+              <p>
+                  UPDATE - ᴀᴅᴅᴇᴅ ᴘᴜʙʟɪᴄ ᴄʜᴀᴛ ᴀɴᴅ ᴛɪᴄᴋᴇᴛ sʏsᴛᴇᴍ!
+                  
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHAT -->
+        <div id="chat" class="tab-panel active">
+          <div class="messages" id="messages">
+            <div class="chat-empty" id="chatEmpty">
+              <div class="chat-empty-icon"><i class="fa-solid fa-comments"></i></div>
+              <h3>No messages yet</h3>
+              <p>Type a message below to start.</p>
+            </div>
+          </div>
+          <div class="chat-input-bar">
+            <div class="chat-input-wrap">
+              <input type="text" id="chatInput" placeholder="Message SevnHub..." onkeydown="if(event.key==='Enter')sendMessage()">
+              <button class="send-btn" onclick="sendMessage()"><i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+            <div class="chat-hint">SevnHub can make mistakes.</div>
+          </div>
+        </div>
+
+        <!-- PLUGINS -->
+        <div id="plugins" class="tab-panel">
+          <div class="page-content">
+            <div class="files-panel">
+              <div class="files-header">
+                <i class="fa-solid fa-folder"></i> All Files
+              </div>
+              <div id="pluginsGrid">
+                <div class="files-empty">Loading files...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LICENSE -->
+        <div id="license" class="tab-panel">
+          <div class="page-content">
+            <h1 class="page-title">Licenses</h1>
+            <p class="page-desc">Your personal license key</p>
+            <div class="card">
+              <div class="card-title">License Key</div>
+              <div class="license-box">
+                <span id="licenseKey">G4UPK-XXXX-XXXX-XXXX</span>
+                <button class="copy-btn" onclick="copyLicense()">Copy</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Status</div>
+              <div class="status-badge">Active</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RAID -->
+        <div id="raid" class="tab-panel">
+          <div class="raid-lock" id="raidLock">
+            <div class="raid-lock-icon"><i class="fa-solid fa-lock"></i></div>
+            <h3>777 Raid Tools</h3>
+            <p>Enter the access key to unlock</p>
+            <div class="raid-input-wrap">
+              <input type="password" id="raidKey" placeholder="Access key..." onkeydown="if(event.key==='Enter')unlockRaid()">
+              <button class="raid-unlock-btn" onclick="unlockRaid()">Unlock</button>
+            </div>
+            <div class="raid-error" id="raidError">Wrong key. Try again.</div>
+          </div>
+
+          <div class="page-content" id="raidContent" style="display:none;">
+            <div class="files-panel">
+              <div class="files-header">
+                <i class="fa-solid fa-shield-halved"></i> 777 Raid Tools
+              </div>
+              <div id="raidGrid">
+                <div class="files-empty">Loading tools...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FEEDBACK -->
+           <div id="feedback" class="tab-panel">
+          <div class="page-content">
+            <h1 class="page-title">Feedback</h1>
+            <p class="page-desc">Share your thoughts</p>
+            <div class="card">
+              <textarea id="feedbackText" placeholder="Write your feedback..."></textarea>
+              <button class="submit-btn" onclick="submitFeedback()">Submit</button>
+              <div class="feedback-ok" id="feedbackStatus">✓ Sent successfully</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div> 
+
+  <script>
+    const RAID_PASSWORD = 'sevntools2026paid';
+
+    async function loadUser() {
+      try {
+        const res = await fetch('/api/me');
+        if (!res.ok) return location.href = '/login';
+        const user = await res.json();
+        document.getElementById('user-name').textContent = user.global_name || user.username;
+        document.getElementById('user-email').textContent = user.email || user.id;
+        document.getElementById('user-avatar').src = user.avatar
+          ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+          : 'https://cdn.discordapp.com/embed/avatars/0.png';
+        const key = 'SEVN-' + user.id.slice(0,4) + '-' + user.id.slice(4,8) + '-' + user.id.slice(-4);
+        document.getElementById('licenseKey').textContent = key.toUpperCase();
+      } catch {
+        location.href = '/login';
+      }
+    }
+
+    function switchTab(id, btn) {
+      document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      btn.classList.add('active');
+      if (id === 'plugins') loadPlugins();
+      if (id === 'raid') checkRaidUnlock();
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      const empty = document.getElementById('chatEmpty');
+      if (empty) empty.remove();
+      const messages = document.getElementById('messages');
+      const msg = document.createElement('div');
+      msg.className = 'message';
+      msg.textContent = text;
+      messages.appendChild(msg);
+      messages.scrollTop = messages.scrollHeight;
+      input.value = '';
+    }
+
+    function copyLicense() {
+      navigator.clipboard.writeText(document.getElementById('licenseKey').textContent);
+      alert('Copied!');
+    }
+
+    function submitFeedback() {
+      const text = document.getElementById('feedbackText').value.trim();
+      if (!text) return alert('Write something');
+      document.getElementById('feedbackStatus').style.display = 'block';
+      document.getElementById('feedbackText').value = '';
+      setTimeout(() => document.getElementById('feedbackStatus').style.display = 'none', 3000);
+    }
+
+    function fileRow(file, size, type, url) {
+      return `
+        <a href="${url}" class="file-row" download>
+          <div class="file-icon"><i class="fa-solid fa-file"></i></div>
+          <div class="file-info">
+            <div class="file-name">${file}</div>
+            <div class="file-meta">${size} · ${type}</div>
+          </div>
+          <div class="file-download">Download</div>
+        </a>`;
+    }
+
+    async function loadPlugins() {
+      const grid = document.getElementById('pluginsGrid');
+      try {
+        const res = await fetch('/api/plugins');
+        const list = await res.json();
+        if (!list.length) {
+          grid.innerHTML = `<div class="files-empty">No files found</div>`;
+          return;
+        }
+        grid.innerHTML = list.map(p => fileRow(p.file, p.size, p.type, p.downloadUrl)).join('');
+      } catch {
+        grid.innerHTML = `<div class="files-empty">Failed to load</div>`;
+      }
+    }
+
+    function unlockRaid() {
+      const input = document.getElementById('raidKey');
+      const error = document.getElementById('raidError');
+      if (input.value === RAID_PASSWORD) {
+        sessionStorage.setItem('raidUnlocked', 'true');
+        document.getElementById('raidLock').style.display = 'none';
+        document.getElementById('raidContent').style.display = 'block';
+        loadRaidTools();
+      } else {
+        error.style.display = 'block';
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    function checkRaidUnlock() {
+      if (sessionStorage.getItem('raidUnlocked') === 'true') {
+        document.getElementById('raidLock').style.display = 'none';
+        document.getElementById('raidContent').style.display = 'block';
+        loadRaidTools();
+      } else {
+        document.getElementById('raidLock').style.display = 'flex';
+        document.getElementById('raidContent').style.display = 'none';
+      }
+    }
+
+    async function loadRaidTools() {
+      const grid = document.getElementById('raidGrid');
+      try {
+        const res = await fetch('/api/raid');
+        const list = await res.json();
+        if (!list.length) {
+          grid.innerHTML = `<div class="files-empty">No tools found</div>`;
+          return;
+        }
+        grid.innerHTML = list.map(t => fileRow(t.file, t.size, t.type, t.downloadUrl)).join('');
+      } catch {
+        grid.innerHTML = `<div class="files-empty">Failed to load</div>`;
+      }
+    }
+
+    loadUser();
+  </script>
+</body>
+</html>
