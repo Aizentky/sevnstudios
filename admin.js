@@ -4,17 +4,17 @@ const path = require('path');
 const router = express.Router();
 
 const USERS_FILE = path.join(__dirname, 'data', 'users.json');
-const ALLOWED_ADMIN_ID = '1504098102171406510'; // ← only this Discord ID can access
+const MAINTENANCE_FILE = path.join(__dirname, 'data', 'maintenance.json');
+const ALLOWED_ADMIN_ID = process.env.ADMIN_DISCORD_ID || '1504098102171406510';
 
-// Ensure data folder + file exist
+// Ensure data folder + users file exist
 if (!fs.existsSync(path.join(__dirname, 'data'))) {
-  fs.mkdirSync(path.join(__dirname, 'data'));
+  fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
 }
 if (!fs.existsSync(USERS_FILE)) {
   fs.writeFileSync(USERS_FILE, '[]');
 }
 
-// Helpers
 function getUsers() {
   try {
     return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
@@ -27,16 +27,23 @@ function saveUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
-// ======================
-// Protect Admin - Only specific Discord ID
-// ======================
-function requireAdmin(req, res, next) {
-  // Must be logged in with Discord first
-  if (!req.session.user) {
-    return res.redirect('/login');
+function getMaintenance() {
+  try {
+    if (!fs.existsSync(MAINTENANCE_FILE)) return { enabled: false };
+    return JSON.parse(fs.readFileSync(MAINTENANCE_FILE, 'utf8'));
+  } catch {
+    return { enabled: false };
   }
+}
 
-  // Only allow this Discord ID
+function setMaintenance(enabled) {
+  fs.writeFileSync(MAINTENANCE_FILE, JSON.stringify({ enabled }, null, 2));
+}
+
+// Middleware — only allow your Discord ID
+function requireAdmin(req, res, next) {
+  if (!req.session.user) return res.redirect('/login');
+
   if (req.session.user.id !== ALLOWED_ADMIN_ID) {
     return res.status(403).send(`
       <!DOCTYPE html>
@@ -45,9 +52,9 @@ function requireAdmin(req, res, next) {
         <title>Access Denied</title>
         <style>
           body {
-            font-family: system-ui;
-            background: #0a0a0f;
-            color: white;
+            font-family: system-ui, sans-serif;
+            background: #05080a;
+            color: #e6edf3;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -56,19 +63,19 @@ function requireAdmin(req, res, next) {
             text-align: center;
           }
           .box {
-            background: #14141c;
+            background: rgba(10, 18, 16, 0.6);
             padding: 40px;
             border-radius: 16px;
-            border: 1px solid #2a2a35;
+            border: 1px solid rgba(0, 255, 156, 0.1);
           }
-          h1 { color: #ef4444; margin-bottom: 12px; }
-          a { color: #5865F2; }
+          h1 { color: #ff4466; margin-bottom: 12px; }
+          a { color: #00ff9c; text-decoration: none; }
         </style>
       </head>
       <body>
         <div class="box">
           <h1>Access Denied</h1>
-          <p>You are not authorized to view the admin panel.</p>
+          <p>You are not authorized to view this page.</p>
           <br>
           <a href="/dashboard">← Back to Dashboard</a>
         </div>
@@ -80,122 +87,294 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// ======================
-// Admin Dashboard
-// ======================
+// Toggle maintenance mode
+router.post('/maintenance', requireAdmin, (req, res) => {
+  const current = getMaintenance();
+  setMaintenance(!current.enabled);
+  res.redirect('/admin');
+});
+
+// Delete a user
+router.post('/delete/:id', requireAdmin, (req, res) => {
+  const users = getUsers().filter(u => u.id !== req.params.id);
+  saveUsers(users);
+  res.redirect('/admin');
+});
+
+// Admin dashboard page
 router.get('/', requireAdmin, (req, res) => {
   const users = getUsers();
+  const maint = getMaintenance();
+
+  const joinedToday = users.filter(u => {
+    if (!u.joinedAt) return false;
+    return Date.now() - new Date(u.joinedAt).getTime() < 86400000;
+  }).length;
 
   const rows = users.map((u, i) => `
     <tr>
       <td>${i + 1}</td>
       <td>
-        <img src="${u.avatar 
-          ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png` 
-          : 'https://cdn.discordapp.com/embed/avatars/0.png'}" 
-          width="32" height="32" style="border-radius:50%; vertical-align:middle; margin-right:8px;">
-        ${u.global_name || u.username}
+        <div style="display:flex;align-items:center;gap:10px;">
+          <img
+            src="${u.avatar
+              ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png`
+              : 'https://cdn.discordapp.com/embed/avatars/0.png'}"
+            width="32" height="32"
+            style="border-radius:8px;object-fit:cover;"
+          >
+          <div>
+            <div style="font-weight:600;">${u.global_name || u.username}</div>
+            <div style="font-size:12px;color:#6b7a8f;">@${u.username}</div>
+          </div>
+        </div>
       </td>
-      <td>${u.username}</td>
       <td><code>${u.id}</code></td>
       <td>${u.email || '—'}</td>
-      <td>${new Date(u.joinedAt).toLocaleString()}</td>
+      <td style="font-size:13px;color:#6b7a8f;">
+        ${u.joinedAt ? new Date(u.joinedAt).toLocaleString() : '—'}
+      </td>
       <td>
-        <form method="POST" action="/admin/delete/${u.id}" style="display:inline" onsubmit="return confirm('Delete this user?')">
-          <button type="submit" style="background:#ef4444;color:white;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;">Delete</button>
+        <form method="POST" action="/admin/delete/${u.id}" style="display:inline;"
+              onsubmit="return confirm('Delete this user permanently?')">
+          <button type="submit" class="btn-danger">Delete</button>
         </form>
       </td>
     </tr>
   `).join('');
 
   res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Admin Panel - SevnHub</title>
-      <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: #0a0a0f; color: #e5e7eb; padding: 40px 20px; }
-        .container { max-width: 1100px; margin: 0 auto; }
-        h1 { font-size: 28px; margin-bottom: 8px; }
-        .subtitle { color: #9ca3af; margin-bottom: 32px; }
-        .stats { display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
-        .stat { background: #14141c; border: 1px solid #2a2a35; border-radius: 12px; padding: 20px 28px; flex: 1; min-width: 140px; }
-        .stat-value { font-size: 32px; font-weight: 700; color: #5865F2; }
-        .stat-label { color: #9ca3af; font-size: 14px; margin-top: 4px; }
-        table { width: 100%; border-collapse: collapse; background: #14141c; border-radius: 12px; overflow: hidden; border: 1px solid #2a2a35; }
-        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #2a2a35; }
-        th { background: #1a1a24; color: #9ca3af; font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover { background: #1a1a24; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-        .btn { background: #5865F2; color: white; border: none; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; }
-        .btn:hover { background: #4752c4; }
-        .btn-danger { background: #ef4444; }
-        .btn-danger:hover { background: #dc2626; }
-        .empty { text-align: center; padding: 60px; color: #6b7280; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <div>
-            <h1>Admin Panel</h1>
-            <p class="subtitle">SevnHub • Registered Users</p>
-          </div>
-          <div style="display:flex;gap:12px;">
-            <a href="/dashboard" class="btn">Back to Site</a>
-            <a href="/logout" class="btn btn-danger">Logout</a>
-          </div>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — SevnHub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Orbitron:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #05080a;
+      --card: rgba(10, 18, 16, 0.6);
+      --border: rgba(0, 255, 156, 0.1);
+      --accent: #00ff9c;
+      --accent-dim: #00a86b;
+      --text: #e6edf3;
+      --muted: #6b7a8f;
+      --danger: #ff4466;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 40px 24px;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
 
-        <div class="stats">
-          <div class="stat">
-            <div class="stat-value">${users.length}</div>
-            <div class="stat-label">Total Users</div>
-          </div>
-          <div class="stat">
-            <div class="stat-value">${users.filter(u => u.email).length}</div>
-            <div class="stat-label">With Email</div>
-          </div>
-          <div class="stat">
-            <div class="stat-value">${users.filter(u => Date.now() - new Date(u.joinedAt) < 86400000).length}</div>
-            <div class="stat-label">Joined Today</div>
-          </div>
-        </div>
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+    .header p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
 
-        ${users.length === 0 
-          ? `<div class="empty">No users registered yet.</div>` 
-          : `
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>User</th>
-                <th>Username</th>
-                <th>Discord ID</th>
-                <th>Email</th>
-                <th>Joined</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-          </table>
-        `}
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 9px 18px;
+      border-radius: 9px;
+      font-weight: 600;
+      font-size: 0.82rem;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn-maint-on {
+      background: rgba(255, 68, 102, 0.15);
+      color: var(--danger);
+      border: 1px solid rgba(255, 68, 102, 0.3);
+    }
+    .btn-maint-off {
+      background: rgba(0, 255, 156, 0.1);
+      color: var(--accent);
+      border: 1px solid rgba(0, 255, 156, 0.2);
+    }
+    .btn-danger {
+      background: rgba(255, 68, 102, 0.12);
+      color: var(--danger);
+      border: 1px solid rgba(255, 68, 102, 0.2);
+      padding: 5px 12px;
+      border-radius: 7px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-danger:hover {
+      background: rgba(255, 68, 102, 0.22);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px;
+    }
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.03em;
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 14px 18px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    th {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(0, 255, 156, 0.03); }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .empty {
+      text-align: center;
+      padding: 48px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>SEVN ADMIN</h1>
+        <p>Manage users & site settings</p>
       </div>
-    </body>
-    </html>
-  `);
-});
+      <div class="actions">
+        <form method="POST" action="/admin/maintenance" style="display:inline;">
+          <button type="submit" class="btn ${maint.enabled ? 'btn-maint-on' : 'btn-maint-off'}">
+            Maintenance: ${maint.enabled ? 'ON' : 'OFF'}
+          </button>
+        </form>
+        <a href="/dashboard" class="btn btn-outline">Dashboard</a>
+        <a href="/logout" class="btn btn-outline">Logout</a>
+      </div>
+    </div>
 
-// Delete user
-router.post('/delete/:id', requireAdmin, (req, res) => {
-  const users = getUsers();
-  const filtered = users.filter(u => u.id !== req.params.id);
-  saveUsers(filtered);
-  res.redirect('/admin');
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value">${users.length}</div>
+        <div class="stat-label">Registered Users</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">${users.filter(u => u.email).length}</div>
+        <div class="stat-label">With Email</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">${joinedToday}</div>
+        <div class="stat-label">Joined Today</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" style="color:${maint.enabled ? '#ff4466' : '#00ff9c'}">
+          ${maint.enabled ? 'ON' : 'OFF'}
+        </div>
+        <div class="stat-label">Maintenance Mode</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">Members (${users.length})</div>
+      ${users.length === 0
+        ? '<div class="empty">No users registered yet.</div>'
+        : `
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>User</th>
+              <th>Discord ID</th>
+              <th>Email</th>
+              <th>Joined</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      `}
+    </div>
+  </div>
+</body>
+</html>
+  `);
 });
 
 // Export
@@ -213,13 +392,14 @@ module.exports = {
         joinedAt: new Date().toISOString()
       });
     } else {
-      const index = users.findIndex(u => u.id === userData.id);
-      users[index] = {
-        ...users[index],
+      const i = users.findIndex(u => u.id === userData.id);
+      users[i] = {
+        ...users[i],
         ...userData,
-        joinedAt: users[index].joinedAt
+        joinedAt: users[i].joinedAt // keep original join date
       };
     }
+
     saveUsers(users);
   }
 };
