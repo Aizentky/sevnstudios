@@ -5,7 +5,8 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { router: adminRouter, addUser } = require('./admin');
+const multer = require('multer');
+const { router: adminRouter, addUser, getUsers, saveUsers } = require('./admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,7 +46,7 @@ app.use(session({
   }
 }));
 
-// Admin routes
+// Admin routes (/admin page)
 app.use('/admin', adminRouter);
 
 // ======================
@@ -64,6 +65,17 @@ const TICKETS_FILE = path.join(__dirname, 'data', 'tickets.json');
 const CHAT_FILE = path.join(__dirname, 'data', 'chat.json');
 const MAINTENANCE_FILE = path.join(__dirname, 'data', 'maintenance.json');
 const GIVEAWAYS_FILE = path.join(__dirname, 'data', 'giveaways.json');
+const LOGS_FILE = path.join(__dirname, 'data', 'logs.json');
+const IP_LOGS_FILE = path.join(__dirname, 'data', 'ip_logs.json');
+
+const pluginsDir = path.join(__dirname, 'public', 'plugins');
+if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, pluginsDir),
+  filename: (req, file, cb) => cb(null, file.originalname)
+});
+const upload = multer({ storage });
 
 function getTickets() {
   try {
@@ -107,6 +119,62 @@ function saveGiveaways(list) {
   ensureDataDir();
   fs.writeFileSync(GIVEAWAYS_FILE, JSON.stringify(list, null, 2));
 }
+
+function getLogs() {
+  try {
+    if (!fs.existsSync(LOGS_FILE)) return [];
+    return JSON.parse(fs.readFileSync(LOGS_FILE, 'utf8'));
+  } catch { return []; }
+}
+
+function addLog(action, user, detail = '') {
+  ensureDataDir();
+  const logs = getLogs();
+  logs.unshift({
+    id: Date.now().toString(36),
+    action,
+    user: user ? (user.global_name || user.username) : 'System',
+    userId: user ? user.id : null,
+    detail,
+    at: new Date().toISOString()
+  });
+  fs.writeFileSync(LOGS_FILE, JSON.stringify(logs.slice(0, 500), null, 2));
+}
+
+function getIpLogs() {
+  try {
+    if (!fs.existsSync(IP_LOGS_FILE)) return [];
+    return JSON.parse(fs.readFileSync(IP_LOGS_FILE, 'utf8'));
+  } catch { return []; }
+}
+
+function addIpLog(req) {
+  if (!req.session.user) return;
+  ensureDataDir();
+  const logs = getIpLogs();
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
+  logs.unshift({
+    id: Date.now().toString(36),
+    userId: req.session.user.id,
+    username: req.session.user.global_name || req.session.user.username,
+    ip,
+    path: req.originalUrl,
+    at: new Date().toISOString()
+  });
+  fs.writeFileSync(IP_LOGS_FILE, JSON.stringify(logs.slice(0, 300), null, 2));
+}
+
+// IP logging middleware
+app.use((req, res, next) => {
+  if (req.session?.user) {
+    const key = `ip_${req.session.user.id}`;
+    if (!req.session[key] || Date.now() - req.session[key] > 5 * 60 * 1000) {
+      addIpLog(req);
+      req.session[key] = Date.now();
+    }
+  }
+  next();
+});
 
 // Auto-reset chat every 1 hour
 setInterval(() => {
@@ -209,6 +277,7 @@ app.get('/auth/discord/callback', async (req, res) => {
 
     req.session.user = userData;
     addUser(userData);
+    addLog('login', userData);
 
     console.log(`✅ Logged in: ${user.username} (${user.id})`);
     res.redirect('/dashboard');
@@ -527,20 +596,16 @@ app.post('/api/tickets/:id/close', (req, res) => {
   res.json(ticket);
 });
 
-// Clear all tickets (admin)
 app.delete('/api/tickets/clear', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
   if (req.session.user.id !== ADMIN_ID) return res.status(403).json({ error: 'Admin only' });
-
   saveTickets([]);
   res.json({ success: true });
 });
 
-// Clear closed tickets only (admin)
 app.delete('/api/tickets/clear-closed', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
   if (req.session.user.id !== ADMIN_ID) return res.status(403).json({ error: 'Admin only' });
-
   const list = getTickets().filter(t => t.status !== 'closed');
   saveTickets(list);
   res.json({ success: true, remaining: list.length });
@@ -601,6 +666,7 @@ app.post('/api/giveaways', (req, res) => {
 
   list.unshift(giveaway);
   saveGiveaways(list);
+  addLog('create_giveaway', req.session.user, giveaway.title);
   res.json(giveaway);
 });
 
@@ -659,10 +725,10 @@ app.post('/api/giveaways/:id/end', (req, res) => {
   }));
 
   saveGiveaways(list);
+  addLog('end_giveaway', req.session.user, g.title);
   res.json(g);
 });
 
-// Clear ended giveaways (admin)
 app.delete('/api/giveaways/clear-ended', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
   if (req.session.user.id !== ADMIN_ID) return res.status(403).json({ error: 'Admin only' });
@@ -670,6 +736,100 @@ app.delete('/api/giveaways/clear-ended', (req, res) => {
   const list = getGiveaways().filter(g => g.status === 'active');
   saveGiveaways(list);
   res.json({ success: true, remaining: list.length });
+});
+
+// ======================
+// ADMIN APIs
+// ======================
+app.get('/api/admin/users', (req, res) => {
+  if (!req.session.user || req.session.user.id !== ADMIN_ID) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  res.json(getUsers());
+});
+
+app.delete('/api/admin/users/:id', (req, res) => {
+  if (!req.session.user || req.session.user.id !== ADMIN_ID) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  const users = getUsers().filter(u => u.id !== req.params.id);
+  saveUsers(users);
+  addLog('delete_user', req.session.user, `Deleted ${req.params.id}`);
+  res.json({ success: true });
+});
+
+app.get('/api/admin/maintenance', (req, res) => {
+  if (!req.session.user || req.session.user.id !== ADMIN_ID) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  res.json(getMaintenance());
+});
+
+app.post('/api/admin/maintenance', (req, res) => {
+  if (!req.session.user || req.session.user.id !== ADMIN_ID) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  const enabled = !!req.body.enabled;
+  ensureDataDir();
+  fs.writeFileSync(MAINTENANCE_FILE, JSON.stringify({ enabled }, null, 2));
+  addLog('maintenance', req.session.user, enabled ? 'ON' : 'OFF');
+  res.json({ enabled });
+});
+
+app.get('/api/admin/logs', (req, res) => {
+  if (!req.session.user || req.session.user.id !== ADMIN_ID) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  res.json(getLogs());
+});
+
+app.delete('/api/admin/logs', (req, res) => {
+  if (!req.session.user || req.session.user.id !== ADMIN_ID) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  ensureDataDir();
+  fs.writeFileSync(LOGS_FILE, '[]');
+  res.json({ success: true });
+});
+
+app.get('/api/admin/ip-logs', (req, res) => {
+  if (!req.session.user || req.session.user.id !== ADMIN_ID) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  res.json(getIpLogs());
+});
+
+app.delete('/api/admin/ip-logs', (req, res) => {
+  if (!req.session.user || req.session.user.id !== ADMIN_ID) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  ensureDataDir();
+  fs.writeFileSync(IP_LOGS_FILE, '[]');
+  res.json({ success: true });
+});
+
+// Upload plugin
+app.post('/api/admin/plugins/upload', upload.single('file'), (req, res) => {
+  if (!req.session.user || req.session.user.id !== ADMIN_ID) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  if (!req.file) return res.status(400).json({ error: 'No file' });
+  addLog('upload_plugin', req.session.user, req.file.originalname);
+  res.json({ success: true, file: req.file.originalname });
+});
+
+// Delete plugin
+app.delete('/api/admin/plugins/:filename', (req, res) => {
+  if (!req.session.user || req.session.user.id !== ADMIN_ID) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  const file = path.basename(req.params.filename);
+  const fp = path.join(pluginsDir, file);
+  if (fs.existsSync(fp)) {
+    fs.unlinkSync(fp);
+    addLog('delete_plugin', req.session.user, file);
+  }
+  res.json({ success: true });
 });
 
 // Logout
