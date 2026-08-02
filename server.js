@@ -67,7 +67,10 @@ app.get('/login', (req, res) => {
 // Discord OAuth - Start
 app.get('/auth/discord', (req, res) => {
   const state = generateState();
-  req.session.oauthState = state;
+req.session.oauthState = state;
+
+console.log("CREATED STATE:", state);
+console.log("SESSION ID:", req.sessionID);
 
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
