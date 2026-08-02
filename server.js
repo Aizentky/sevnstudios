@@ -20,6 +20,7 @@ const REDIRECT_URI = `${BASE_URL}/auth/discord/callback`;
 const SCOPES = ['identify', 'email'];
 const ADMIN_ID = process.env.ADMIN_DISCORD_ID || '1504098102171406510';
 const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 
 // ======================
 // Trust proxy (Render)
@@ -56,16 +57,17 @@ function generateState() {
 }
 
 function ensureDataDir() {
-  const dir = path.join(__dirname, 'data');
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
 }
 
-const TICKETS_FILE = path.join(__dirname, 'data', 'tickets.json');
-const CHAT_FILE = path.join(__dirname, 'data', 'chat.json');
-const MAINTENANCE_FILE = path.join(__dirname, 'data', 'maintenance.json');
-const GIVEAWAYS_FILE = path.join(__dirname, 'data', 'giveaways.json');
-const LOGS_FILE = path.join(__dirname, 'data', 'logs.json');
-const IP_LOGS_FILE = path.join(__dirname, 'data', 'ip_logs.json');
+const TICKETS_FILE = path.join(DATA_DIR, 'tickets.json');
+const CHAT_FILE = path.join(DATA_DIR, 'chat.json');
+const MAINTENANCE_FILE = path.join(DATA_DIR, 'maintenance.json');
+const GIVEAWAYS_FILE = path.join(DATA_DIR, 'giveaways.json');
+const LOGS_FILE = path.join(DATA_DIR, 'logs.json');
+const IP_LOGS_FILE = path.join(DATA_DIR, 'ip_logs.json');
 const pluginsDir = path.join(__dirname, 'public', 'plugins');
 
 if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir, { recursive: true });
@@ -349,16 +351,15 @@ app.get('/api/me', (req, res) => {
 app.get('/api/plugins', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
-  const dir = path.join(__dirname, 'public', 'plugins');
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(pluginsDir)) {
+    fs.mkdirSync(pluginsDir, { recursive: true });
     return res.json([]);
   }
 
   try {
-    const files = fs.readdirSync(dir);
+    const files = fs.readdirSync(pluginsDir);
     const plugins = files.map(file => {
-      const fp = path.join(dir, file);
+      const fp = path.join(pluginsDir, file);
       const stats = fs.statSync(fp);
       if (stats.isDirectory()) return null;
 
@@ -457,6 +458,17 @@ app.post('/api/chat', (req, res) => {
   });
 
   saveChat(messages);
+  res.json({ success: true });
+});
+
+// Clear chat (admin)
+app.delete('/api/admin/chat', (req, res) => {
+  if (!req.session.user || req.session.user.id !== ADMIN_ID) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  ensureDataDir();
+  fs.writeFileSync(CHAT_FILE, '[]');
+  addLog('clear_chat', req.session.user);
   res.json({ success: true });
 });
 
@@ -801,7 +813,7 @@ app.delete('/api/admin/ip-logs', (req, res) => {
   res.json({ success: true });
 });
 
-// Delete plugin (no multer needed)
+// Delete plugin
 app.delete('/api/admin/plugins/:filename', (req, res) => {
   if (!req.session.user || req.session.user.id !== ADMIN_ID) {
     return res.status(403).json({ error: 'Admin only' });
@@ -826,4 +838,5 @@ app.get('/logout', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on ${BASE_URL}`);
   console.log(`🔗 Redirect URI: ${REDIRECT_URI}`);
+  console.log(`📁 Data dir: ${DATA_DIR}`);
 });
