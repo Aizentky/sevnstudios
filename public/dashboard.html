@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -77,6 +76,7 @@
       border-radius: 10px; color: var(--text-3); background: transparent; border: none;
       cursor: pointer; font-size: 0.85rem; font-weight: 500; font-family: inherit;
       transition: all 0.25s; text-align: left; width: 100%; position: relative;
+      text-decoration: none;
     }
     .nav-item i { width: 20px; text-align: center; font-size: 0.9rem; }
     .nav-item:hover { color: var(--text-2); background: var(--bg-hover); }
@@ -317,7 +317,10 @@
 
       <nav class="nav">
         <div class="nav-label">Main</div>
-        <button class="nav-item" onclick="switchTab('home', this)"><i class="fa-solid fa-house"></i><span>Updates</span></button>
+        <!-- HOME → redirects to sevnstudios.ct.ws -->
+        <a class="nav-item" href="https://sevnstudios.ct.ws">
+          <i class="fa-solid fa-house"></i><span>Home</span>
+        </a>
         <button class="nav-item" onclick="switchTab('announcements', this)"><i class="fa-solid fa-bullhorn"></i><span>Announcements</span></button>
         <button class="nav-item active" onclick="switchTab('chat', this)"><i class="fa-solid fa-comments"></i><span>Chat</span></button>
         <button class="nav-item" onclick="switchTab('plugins', this)"><i class="fa-solid fa-folder"></i><span>Plugins</span></button>
@@ -361,19 +364,7 @@
       </div>
 
       <div class="content">
-        <!-- HOME -->
-        <div id="home" class="tab-panel">
-          <div class="page-content">
-            <h1 class="page-title">Updates</h1>
-            <p class="page-desc">Latest changes</p>
-            <div class="card">
-              <div class="card-title">Changelog</div>
-              <p style="color:var(--text-2);font-size:0.85rem;line-height:1.6;">Announcements, Staff, Bans, Codes, Stats & Settings added.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- ANNOUNCEMENTS (everyone) -->
+        <!-- ANNOUNCEMENTS -->
         <div id="announcements" class="tab-panel">
           <div class="page-content">
             <h1 class="page-title">Announcements</h1>
@@ -508,21 +499,12 @@
           </div>
         </div>
 
-        <!-- STAFF (everyone) -->
+        <!-- STAFF -->
         <div id="staff" class="tab-panel">
           <div class="page-content">
             <h1 class="page-title">Staff</h1>
             <p class="page-desc">SevnHub team</p>
-            <div id="staffList">
-              <div class="staff-card">
-                <img src="https://cdn.discordapp.com/embed/avatars/0.png" alt="">
-                <div>
-                  <div style="font-weight:700;">Owner</div>
-                  <div style="font-size:0.8rem;color:var(--text-3);">Discord ID: 1504098102171406510</div>
-                  <span class="staff-role">Owner</span>
-                </div>
-              </div>
-            </div>
+            <div id="staffList"></div>
           </div>
         </div>
 
@@ -566,7 +548,7 @@
           </div>
         </div>
 
-        <!-- ADMIN ANNOUNCEMENTS MANAGER -->
+        <!-- ADMIN ANNOUNCEMENTS -->
         <div id="admin-announcements" class="tab-panel">
           <div class="page-content">
             <h1 class="page-title">Manage Announcements</h1>
@@ -589,7 +571,7 @@
           <div class="page-content">
             <h1 class="page-title">Stats</h1>
             <p class="page-desc">Hub overview</p>
-            <div class="stats-grid" id="statsGrid">
+            <div class="stats-grid">
               <div class="stat-card"><div class="stat-val" id="statUsers">—</div><div class="stat-label">Users</div></div>
               <div class="stat-card"><div class="stat-val" id="statTickets">—</div><div class="stat-label">Open Tickets</div></div>
               <div class="stat-card"><div class="stat-val" id="statGiveaways">—</div><div class="stat-label">Active GWs</div></div>
@@ -611,7 +593,7 @@
               <div class="card-title" style="margin-top:8px;">Raid Password</div>
               <input class="ticket-input" id="setRaidPass" value="sevntools2026paid" style="margin-bottom:10px;">
               <div class="card-title" style="margin-top:8px;">Maintenance Message</div>
-              <textarea id="setMaintMsg" placeholder="SevnHub is under maintenance...">SevnHub is currently under maintenance. Please check back later.</textarea>
+              <textarea id="setMaintMsg">SevnHub is currently under maintenance. Please check back later.</textarea>
               <button class="submit-btn" onclick="saveSettings()">Save Settings</button>
               <div class="feedback-ok" id="settingsSaved">✓ Saved</div>
             </div>
@@ -676,12 +658,6 @@
     const RAID_PASSWORD = 'sevntools2026paid';
     const ADMIN_DISCORD_ID = '1504098102171406510';
     let currentUser = null;
-
-    // Local storage helpers for features without backend yet
-    function lsGet(key, fallback) {
-      try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
-    }
-    function lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
     async function loadUser() {
       try {
@@ -755,7 +731,7 @@
       document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
       document.getElementById(id).classList.add('active');
-      btn.classList.add('active');
+      if (btn) btn.classList.add('active');
       if (id === 'plugins') loadPlugins();
       if (id === 'raid') checkRaidUnlock();
       if (id === 'ticket') loadTickets();
@@ -776,68 +752,78 @@
 
     function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
-    // ========== ANNOUNCEMENTS ==========
-    function loadAnnouncements() {
+    // Announcements
+    async function loadAnnouncements() {
       const list = document.getElementById('announcementsList');
-      const anns = lsGet('sevn_announcements', []);
-      if (!anns.length) {
-        list.innerHTML = `<div class="files-empty">No announcements yet</div>`;
-        return;
-      }
-      const sorted = [...anns].sort((a, b) => (b.pinned - a.pinned) || (new Date(b.at) - new Date(a.at)));
-      list.innerHTML = sorted.map(a => `
-        <div class="ann-card ${a.pinned ? 'pinned' : ''}">
-          <div class="ann-title">${a.pinned ? '📌 ' : ''}${escapeHtml(a.title)}</div>
-          <div class="ann-meta">${new Date(a.at).toLocaleString()}</div>
-          <div class="ann-body">${escapeHtml(a.body)}</div>
-        </div>
-      `).join('');
-    }
-
-    function loadAdminAnnouncements() {
-      const list = document.getElementById('adminAnnList');
-      const anns = lsGet('sevn_announcements', []);
-      if (!anns.length) { list.innerHTML = `<div class="files-empty">No announcements</div>`; return; }
-      list.innerHTML = anns.map(a => `
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;gap:12px;">
-            <div>
-              <div style="font-weight:700;">${a.pinned ? '📌 ' : ''}${escapeHtml(a.title)}</div>
-              <div style="font-size:0.8rem;color:var(--text-3);margin-top:4px;">${escapeHtml(a.body).slice(0,120)}</div>
-              <div style="font-size:0.72rem;color:var(--text-4);margin-top:6px;">${new Date(a.at).toLocaleString()}</div>
-            </div>
-            <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="deleteAnnouncement('${a.id}')">Delete</button>
+      try {
+        const res = await fetch('/api/announcements');
+        const anns = await res.json();
+        if (!anns.length) { list.innerHTML = `<div class="files-empty">No announcements yet</div>`; return; }
+        list.innerHTML = anns.map(a => `
+          <div class="ann-card ${a.pinned ? 'pinned' : ''}">
+            <div class="ann-title">${a.pinned ? '📌 ' : ''}${escapeHtml(a.title)}</div>
+            <div class="ann-meta">${new Date(a.at).toLocaleString()}</div>
+            <div class="ann-body">${escapeHtml(a.body)}</div>
           </div>
-        </div>
-      `).join('');
+        `).join('');
+      } catch {
+        list.innerHTML = `<div class="files-empty">Failed to load</div>`;
+      }
     }
 
-    function createAnnouncement() {
+    async function loadAdminAnnouncements() {
+      const list = document.getElementById('adminAnnList');
+      try {
+        const res = await fetch('/api/announcements');
+        const anns = await res.json();
+        if (!anns.length) { list.innerHTML = `<div class="files-empty">No announcements</div>`; return; }
+        list.innerHTML = anns.map(a => `
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;gap:12px;">
+              <div>
+                <div style="font-weight:700;">${a.pinned ? '📌 ' : ''}${escapeHtml(a.title)}</div>
+                <div style="font-size:0.8rem;color:var(--text-3);margin-top:4px;">${escapeHtml(a.body).slice(0,120)}</div>
+                <div style="font-size:0.72rem;color:var(--text-4);margin-top:6px;">${new Date(a.at).toLocaleString()}</div>
+              </div>
+              <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="deleteAnnouncement('${a.id}')">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      } catch {
+        list.innerHTML = `<div class="files-empty">Failed</div>`;
+      }
+    }
+
+    async function createAnnouncement() {
       const title = document.getElementById('annTitle').value.trim();
       const body = document.getElementById('annBody').value.trim();
       const pinned = document.getElementById('annPinned').checked;
       if (!title || !body) return alert('Title and content required');
-      const anns = lsGet('sevn_announcements', []);
-      anns.unshift({ id: Date.now().toString(36), title, body, pinned, at: new Date().toISOString() });
-      lsSet('sevn_announcements', anns);
-      document.getElementById('annTitle').value = '';
-      document.getElementById('annBody').value = '';
-      document.getElementById('annPinned').checked = false;
-      loadAdminAnnouncements();
-      alert('Posted!');
+      try {
+        const res = await fetch('/api/admin/announcements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, body, pinned })
+        });
+        if (!res.ok) return alert('Failed');
+        document.getElementById('annTitle').value = '';
+        document.getElementById('annBody').value = '';
+        document.getElementById('annPinned').checked = false;
+        loadAdminAnnouncements();
+        alert('Posted!');
+      } catch { alert('Failed'); }
     }
 
-    function deleteAnnouncement(id) {
+    async function deleteAnnouncement(id) {
       if (!confirm('Delete announcement?')) return;
-      const anns = lsGet('sevn_announcements', []).filter(a => a.id !== id);
-      lsSet('sevn_announcements', anns);
-      loadAdminAnnouncements();
+      try {
+        await fetch('/api/admin/announcements/' + id, { method: 'DELETE' });
+        loadAdminAnnouncements();
+      } catch { alert('Failed'); }
     }
 
-    // ========== STAFF ==========
     function loadStaff() {
-      const list = document.getElementById('staffList');
-      list.innerHTML = `
+      document.getElementById('staffList').innerHTML = `
         <div class="staff-card">
           <img src="https://cdn.discordapp.com/embed/avatars/0.png" alt="">
           <div>
@@ -849,125 +835,141 @@
       `;
     }
 
-    // ========== BANS ==========
-    function loadBans() {
+    // Bans
+    async function loadBans() {
       const list = document.getElementById('bansList');
-      const bans = lsGet('sevn_bans', []);
-      if (!bans.length) { list.innerHTML = `<div class="files-empty">No bans</div>`; return; }
-      list.innerHTML = bans.map(b => `
-        <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-          <div>
-            <div style="font-weight:600;font-family:JetBrains Mono,monospace;font-size:0.85rem;">${escapeHtml(b.userId)}</div>
-            <div style="font-size:0.75rem;color:var(--text-4);margin-top:3px;">${escapeHtml(b.reason || 'No reason')} · ${new Date(b.at).toLocaleString()}</div>
+      try {
+        const res = await fetch('/api/admin/bans');
+        const bans = await res.json();
+        if (!bans.length) { list.innerHTML = `<div class="files-empty">No bans</div>`; return; }
+        list.innerHTML = bans.map(b => `
+          <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <div>
+              <div style="font-weight:600;font-family:JetBrains Mono,monospace;font-size:0.85rem;">${escapeHtml(b.userId)}</div>
+              <div style="font-size:0.75rem;color:var(--text-4);margin-top:3px;">${escapeHtml(b.reason || 'No reason')} · ${new Date(b.at).toLocaleString()}</div>
+            </div>
+            <button class="submit-btn" style="margin-top:0;background:rgba(0,255,156,0.1);color:var(--accent);" onclick="unbanUser('${b.userId}')">Unban</button>
           </div>
-          <button class="submit-btn" style="margin-top:0;background:rgba(0,255,156,0.1);color:var(--accent);" onclick="unbanUser('${b.userId}')">Unban</button>
-        </div>
-      `).join('');
+        `).join('');
+      } catch { list.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
-    function banUser() {
+    async function banUser() {
       const userId = document.getElementById('banUserId').value.trim();
       const reason = document.getElementById('banReason').value.trim();
       if (!userId) return alert('Discord ID required');
-      if (userId === ADMIN_DISCORD_ID) return alert('Cannot ban owner');
-      const bans = lsGet('sevn_bans', []);
-      if (bans.find(b => b.userId === userId)) return alert('Already banned');
-      bans.unshift({ userId, reason, at: new Date().toISOString() });
-      lsSet('sevn_bans', bans);
-      document.getElementById('banUserId').value = '';
-      document.getElementById('banReason').value = '';
-      loadBans();
+      try {
+        const res = await fetch('/api/admin/bans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, reason })
+        });
+        const data = await res.json();
+        if (!res.ok) return alert(data.error || 'Failed');
+        document.getElementById('banUserId').value = '';
+        document.getElementById('banReason').value = '';
+        loadBans();
+      } catch { alert('Failed'); }
     }
 
-    function unbanUser(userId) {
+    async function unbanUser(userId) {
       if (!confirm('Unban this user?')) return;
-      const bans = lsGet('sevn_bans', []).filter(b => b.userId !== userId);
-      lsSet('sevn_bans', bans);
-      loadBans();
+      try {
+        await fetch('/api/admin/bans/' + userId, { method: 'DELETE' });
+        loadBans();
+      } catch { alert('Failed'); }
     }
 
-    // ========== CODES ==========
-    function loadCodes() {
+    // Codes
+    async function loadCodes() {
       const list = document.getElementById('codesList');
-      const codes = lsGet('sevn_codes', []);
-      if (!codes.length) { list.innerHTML = `<div class="files-empty">No codes</div>`; return; }
-      list.innerHTML = codes.map(c => `
-        <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-          <div>
-            <div style="font-weight:700;font-family:JetBrains Mono,monospace;">${escapeHtml(c.code)}</div>
-            <div style="font-size:0.75rem;color:var(--text-4);margin-top:3px;">
-              ${escapeHtml(c.note || '—')} · Uses: ${c.uses}/${c.maxUses}
+      try {
+        const res = await fetch('/api/admin/codes');
+        const codes = await res.json();
+        if (!codes.length) { list.innerHTML = `<div class="files-empty">No codes</div>`; return; }
+        list.innerHTML = codes.map(c => `
+          <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <div>
+              <div style="font-weight:700;font-family:JetBrains Mono,monospace;">${escapeHtml(c.code)}</div>
+              <div style="font-size:0.75rem;color:var(--text-4);margin-top:3px;">${escapeHtml(c.note || '—')} · Uses: ${c.uses}/${c.maxUses}</div>
             </div>
+            <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="deleteCode('${c.id}')">Delete</button>
           </div>
-          <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="deleteCode('${c.id}')">Delete</button>
-        </div>
-      `).join('');
+        `).join('');
+      } catch { list.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
-    function createCode() {
-      const code = document.getElementById('codeValue').value.trim().toUpperCase();
+    async function createCode() {
+      const code = document.getElementById('codeValue').value.trim();
       const note = document.getElementById('codeNote').value.trim();
-      const maxUses = parseInt(document.getElementById('codeMaxUses').value) || 1;
+      const maxUses = document.getElementById('codeMaxUses').value;
       if (!code) return alert('Code required');
-      const codes = lsGet('sevn_codes', []);
-      if (codes.find(c => c.code === code)) return alert('Code already exists');
-      codes.unshift({ id: Date.now().toString(36), code, note, maxUses, uses: 0, at: new Date().toISOString() });
-      lsSet('sevn_codes', codes);
-      document.getElementById('codeValue').value = '';
-      document.getElementById('codeNote').value = '';
-      document.getElementById('codeMaxUses').value = '1';
-      loadCodes();
+      try {
+        const res = await fetch('/api/admin/codes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, note, maxUses })
+        });
+        const data = await res.json();
+        if (!res.ok) return alert(data.error || 'Failed');
+        document.getElementById('codeValue').value = '';
+        document.getElementById('codeNote').value = '';
+        document.getElementById('codeMaxUses').value = '1';
+        loadCodes();
+      } catch { alert('Failed'); }
     }
 
-    function deleteCode(id) {
+    async function deleteCode(id) {
       if (!confirm('Delete code?')) return;
-      const codes = lsGet('sevn_codes', []).filter(c => c.id !== id);
-      lsSet('sevn_codes', codes);
-      loadCodes();
+      try {
+        await fetch('/api/admin/codes/' + id, { method: 'DELETE' });
+        loadCodes();
+      } catch { alert('Failed'); }
     }
 
-    // ========== STATS ==========
+    // Stats
     async function loadStats() {
       try {
-        const [usersRes, ticketsRes, gwRes, chatRes] = await Promise.all([
-          fetch('/api/admin/users').then(r => r.ok ? r.json() : []),
-          fetch('/api/tickets').then(r => r.ok ? r.json() : []),
-          fetch('/api/giveaways').then(r => r.ok ? r.json() : []),
-          fetch('/api/chat').then(r => r.ok ? r.json() : [])
-        ]);
-        const bans = lsGet('sevn_bans', []);
-        const feedback = lsGet('sevn_feedback', []);
-        document.getElementById('statUsers').textContent = usersRes.length ?? '—';
-        document.getElementById('statTickets').textContent = (ticketsRes.filter(t => t.status !== 'closed') || []).length;
-        document.getElementById('statGiveaways').textContent = (gwRes.filter(g => g.status === 'active') || []).length;
-        document.getElementById('statChat').textContent = chatRes.length ?? '—';
-        document.getElementById('statBans').textContent = bans.length;
-        document.getElementById('statFeedback').textContent = feedback.length;
-      } catch {
-        document.getElementById('statUsers').textContent = '—';
-      }
+        const res = await fetch('/api/admin/stats');
+        const s = await res.json();
+        document.getElementById('statUsers').textContent = s.users ?? '—';
+        document.getElementById('statTickets').textContent = s.openTickets ?? '—';
+        document.getElementById('statGiveaways').textContent = s.activeGiveaways ?? '—';
+        document.getElementById('statChat').textContent = s.chatMessages ?? '—';
+        document.getElementById('statBans').textContent = s.bans ?? '—';
+        document.getElementById('statFeedback').textContent = s.feedback ?? '—';
+      } catch {}
     }
 
-    // ========== SETTINGS ==========
-    function loadSettingsForm() {
-      const s = lsGet('sevn_settings', {});
-      if (s.siteName) document.getElementById('setSiteName').value = s.siteName;
-      if (s.raidPass) document.getElementById('setRaidPass').value = s.raidPass;
-      if (s.maintMsg) document.getElementById('setMaintMsg').value = s.maintMsg;
+    // Settings
+    async function loadSettingsForm() {
+      try {
+        const res = await fetch('/api/admin/settings');
+        const s = await res.json();
+        if (s.siteName) document.getElementById('setSiteName').value = s.siteName;
+        if (s.raidPass) document.getElementById('setRaidPass').value = s.raidPass;
+        if (s.maintMsg) document.getElementById('setMaintMsg').value = s.maintMsg;
+      } catch {}
     }
 
-    function saveSettings() {
-      const s = {
-        siteName: document.getElementById('setSiteName').value.trim() || 'SevnHub',
-        raidPass: document.getElementById('setRaidPass').value.trim() || RAID_PASSWORD,
-        maintMsg: document.getElementById('setMaintMsg').value.trim()
-      };
-      lsSet('sevn_settings', s);
-      document.getElementById('settingsSaved').style.display = 'block';
-      setTimeout(() => document.getElementById('settingsSaved').style.display = 'none', 2500);
+    async function saveSettings() {
+      try {
+        const res = await fetch('/api/admin/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            siteName: document.getElementById('setSiteName').value.trim(),
+            raidPass: document.getElementById('setRaidPass').value.trim(),
+            maintMsg: document.getElementById('setMaintMsg').value.trim()
+          })
+        });
+        if (!res.ok) return alert('Failed');
+        document.getElementById('settingsSaved').style.display = 'block';
+        setTimeout(() => document.getElementById('settingsSaved').style.display = 'none', 2500);
+      } catch { alert('Failed'); }
     }
 
-    // ========== CHAT ==========
+    // Chat
     async function loadChat() {
       try {
         const res = await fetch('/api/chat');
@@ -1024,56 +1026,58 @@
       alert('Copied!');
     }
 
-    // ========== FEEDBACK (in-app, not webhook) ==========
+    // Feedback
     async function submitFeedback() {
       const text = document.getElementById('feedbackText').value.trim();
       if (!text) return alert('Write something');
-      const feedback = lsGet('sevn_feedback', []);
-      feedback.unshift({
-        id: Date.now().toString(36),
-        userId: currentUser.id,
-        username: currentUser.global_name || currentUser.username,
-        avatar: currentUser.avatar,
-        text: text.slice(0, 1000),
-        at: new Date().toISOString()
-      });
-      lsSet('sevn_feedback', feedback.slice(0, 200));
-      document.getElementById('feedbackStatus').style.display = 'block';
-      document.getElementById('feedbackText').value = '';
-      setTimeout(() => document.getElementById('feedbackStatus').style.display = 'none', 3000);
-      if (currentUser.id === ADMIN_DISCORD_ID) loadFeedbackAdmin();
+      try {
+        const res = await fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        if (!res.ok) throw new Error();
+        document.getElementById('feedbackStatus').style.display = 'block';
+        document.getElementById('feedbackText').value = '';
+        setTimeout(() => document.getElementById('feedbackStatus').style.display = 'none', 3000);
+        if (currentUser.id === ADMIN_DISCORD_ID) loadFeedbackAdmin();
+      } catch { alert('Failed'); }
     }
 
-    function loadFeedbackAdmin() {
+    async function loadFeedbackAdmin() {
       const list = document.getElementById('feedbackAdminList');
-      const feedback = lsGet('sevn_feedback', []);
-      if (!feedback.length) { list.innerHTML = `<div class="files-empty">No feedback yet</div>`; return; }
-      list.innerHTML = feedback.map(f => {
-        const avatar = f.avatar ? `https://cdn.discordapp.com/avatars/${f.userId}/${f.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png';
-        return `
-          <div class="card">
-            <div style="display:flex;gap:12px;align-items:flex-start;">
-              <img src="${avatar}" width="36" height="36" style="border-radius:8px;">
-              <div style="flex:1;">
-                <div style="font-weight:600;font-size:0.9rem;">${escapeHtml(f.username)}</div>
-                <div style="font-size:0.72rem;color:var(--text-4);margin-bottom:6px;">${new Date(f.at).toLocaleString()}</div>
-                <div style="font-size:0.88rem;color:var(--text-2);">${escapeHtml(f.text)}</div>
+      try {
+        const res = await fetch('/api/admin/feedback');
+        const feedback = await res.json();
+        if (!feedback.length) { list.innerHTML = `<div class="files-empty">No feedback yet</div>`; return; }
+        list.innerHTML = feedback.map(f => {
+          const avatar = f.avatar ? `https://cdn.discordapp.com/avatars/${f.userId}/${f.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png';
+          return `
+            <div class="card">
+              <div style="display:flex;gap:12px;align-items:flex-start;">
+                <img src="${avatar}" width="36" height="36" style="border-radius:8px;">
+                <div style="flex:1;">
+                  <div style="font-weight:600;font-size:0.9rem;">${escapeHtml(f.username)}</div>
+                  <div style="font-size:0.72rem;color:var(--text-4);margin-bottom:6px;">${new Date(f.at).toLocaleString()}</div>
+                  <div style="font-size:0.88rem;color:var(--text-2);">${escapeHtml(f.text)}</div>
+                </div>
+                <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="deleteFeedback('${f.id}')">Delete</button>
               </div>
-              <button class="submit-btn" style="margin-top:0;background:rgba(255,68,102,0.15);color:#ff4466;" onclick="deleteFeedback('${f.id}')">Delete</button>
             </div>
-          </div>
-        `;
-      }).join('');
+          `;
+        }).join('');
+      } catch { list.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
-    function deleteFeedback(id) {
+    async function deleteFeedback(id) {
       if (!confirm('Delete feedback?')) return;
-      const feedback = lsGet('sevn_feedback', []).filter(f => f.id !== id);
-      lsSet('sevn_feedback', feedback);
-      loadFeedbackAdmin();
+      try {
+        await fetch('/api/admin/feedback/' + id, { method: 'DELETE' });
+        loadFeedbackAdmin();
+      } catch { alert('Failed'); }
     }
 
-    // ========== PLUGINS ==========
+    // Plugins
     async function loadPlugins() {
       const grid = document.getElementById('pluginsGrid');
       const isAdmin = currentUser && currentUser.id === ADMIN_DISCORD_ID;
@@ -1104,13 +1108,11 @@
       } catch { alert('Failed'); }
     }
 
-    // ========== RAID ==========
+    // Raid
     function unlockRaid() {
       const input = document.getElementById('raidKey');
       const error = document.getElementById('raidError');
-      const settings = lsGet('sevn_settings', {});
-      const pass = settings.raidPass || RAID_PASSWORD;
-      if (input.value === pass) {
+      if (input.value === RAID_PASSWORD) {
         sessionStorage.setItem('raidUnlocked', 'true');
         document.getElementById('raidLock').style.display = 'none';
         document.getElementById('raidContent').style.display = 'block';
@@ -1149,7 +1151,7 @@
       } catch { grid.innerHTML = `<div class="files-empty">Failed</div>`; }
     }
 
-    // ========== TICKETS ==========
+    // Tickets
     async function createTicket() {
       const subject = document.getElementById('ticketSubject').value.trim();
       const message = document.getElementById('ticketMessage').value.trim();
@@ -1245,7 +1247,7 @@
       try { await fetch('/api/tickets/clear', { method: 'DELETE' }); loadTickets(); } catch { alert('Failed'); }
     }
 
-    // ========== GIVEAWAYS ==========
+    // Giveaways
     async function loadGiveaways() {
       const createCard = document.getElementById('createGiveawayCard');
       if (currentUser && currentUser.id === ADMIN_DISCORD_ID) createCard.style.display = 'block';
@@ -1342,7 +1344,7 @@
       try { await fetch('/api/giveaways/clear-ended', { method: 'DELETE' }); loadGiveaways(); } catch { alert('Failed'); }
     }
 
-    // ========== ADMIN USERS ==========
+    // Admin users
     async function loadAdminUsers() {
       const list = document.getElementById('adminUsersList');
       try {
@@ -1386,7 +1388,6 @@
       } catch { alert('Failed'); }
     }
 
-    // ========== MAINTENANCE / IP / LOGS ==========
     async function loadMaintenance() {
       try {
         const res = await fetch('/api/admin/maintenance');
